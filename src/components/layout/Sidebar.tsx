@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { HomeIcon, CpuChipIcon, PlayIcon, PuzzlePieceIcon, ChevronUpDownIcon, Cog6ToothIcon, ArrowRightOnRectangleIcon, QuestionMarkCircleIcon, UserIcon, EnvelopeIcon } from '@heroicons/react/24/outline';
+import { HomeIcon, CpuChipIcon, PlayIcon, PuzzlePieceIcon, Cog6ToothIcon, QuestionMarkCircleIcon, UserIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import {
     DropdownMenu,
@@ -10,18 +10,19 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { BookOpenIcon, ChevronUp, SignalIcon } from 'lucide-react';
+import { ChevronUpIcon } from '@heroicons/react/24/solid';
+import { usePathname } from 'next/navigation';
 
 const navigation = [
     { name: 'Home', href: '/dashboard', icon: HomeIcon },
-    { name: 'Automations', href: '/dashboard/automations', icon: CpuChipIcon },
+    { name: 'Workflows', href: '/dashboard/workflows', icon: CpuChipIcon },
     { name: 'Runs', href: '/dashboard/runs', icon: PlayIcon },
     { name: 'Integrations', href: '/dashboard/integrations', icon: PuzzlePieceIcon },
 ];
 
 
 export default function Sidebar() {
-    const pathname = '/dashboard';
+    const pathname = usePathname();
 
     return (
         <div className="hidden md:flex max-h-screen">
@@ -72,7 +73,7 @@ export default function Sidebar() {
                                         <span className="text-xs text-zinc-500">john@example.com</span>
                                     </div>
                                 </div>
-                                <ChevronUp className="h-5 w-5 text-zinc-400" />
+                                <ChevronUpIcon className="h-5 w-5 text-zinc-400" />
                             </DropdownMenuTrigger>
                             <DropdownMenuContent className="w-64" align="start" side="top">
                                 <div className="px-2 py-1.5">
@@ -94,7 +95,7 @@ export default function Sidebar() {
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem className="flex items-center text-red-600">
-                                    <ArrowRightOnRectangleIcon className="mr-2 h-4 w-4" />
+                                    <ArrowRightIcon className="mr-2 h-4 w-4" />
                                     <span>Log out</span>
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
