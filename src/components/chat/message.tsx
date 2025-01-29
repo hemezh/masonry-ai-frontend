@@ -1,12 +1,13 @@
 import { UserIcon } from "@heroicons/react/24/solid"
 import { cn } from "@/lib/utils"
-import { Message, WorkflowStep, WorkflowCreationMessage, WorkflowExecutionMessage, WorkflowModificationMessage } from "@/types/chat"
+import { WorkflowStep, WorkflowCreationMessage, WorkflowExecutionMessage, WorkflowModificationMessage } from "@/types/chat"
 import { Loader2, CheckCircle, XCircle, RefreshCcw, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { ChatMessage as ChatMessageType } from "@/types/chat-api"
 
 interface ChatMessageProps {
-    message: Message
+    message: ChatMessageType
 }
 
 function WorkflowSteps({ steps }: { steps?: WorkflowStep[] }) {
@@ -101,10 +102,10 @@ export function ChatMessage({ message }: ChatMessageProps) {
                     )}
                 </div>
 
-                {message.type === "text" && (
-                    <p className="text-sm text-zinc-600 mt-1">{message.content}</p>
-                )}
-                {message.type === "workflow_creation" && (
+                {/* {message.type === "text" && ( */}
+                <p className="text-sm text-zinc-600 mt-1">{message.content}</p>
+                {/* )} */}
+                {/* {message.type === "workflow_creation" && (
                     <WorkflowCreationContent message={message as WorkflowCreationMessage} />
                 )}
                 {message.type === "workflow_execution" && (
@@ -112,7 +113,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
                 )}
                 {message.type === "workflow_modification" && (
                     <WorkflowModificationContent message={message as WorkflowModificationMessage} />
-                )}
+                )} */}
             </div>
         </div>
     )

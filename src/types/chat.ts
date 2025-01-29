@@ -41,4 +41,4 @@ export interface TextMessage extends BaseMessage {
     type: "text";
 }
 
-export type Message = TextMessage | WorkflowCreationMessage | WorkflowExecutionMessage | WorkflowModificationMessage; 
+export type MessageType = TextMessage | WorkflowCreationMessage | WorkflowExecutionMessage | WorkflowModificationMessage; 

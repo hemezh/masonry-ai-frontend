@@ -1,37 +1,39 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { CalendarIcon, EllipsisVerticalIcon, PlayIcon, TrashIcon, UserIcon } from '@heroicons/react/24/solid';
+import { CalendarIcon, EllipsisVerticalIcon, PlayIcon, TrashIcon, UserIcon, ChatBubbleLeftIcon } from '@heroicons/react/24/solid';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
-
-// Mock data - replace with actual data fetching
-const workflows = [
-    {
-        id: '1',
-        name: 'Invoice Processing',
-        description: 'Automatically process and categorize incoming invoices',
-        runs: 156,
-        createdBy: 'John Doe',
-        createdAt: '2024-02-15'
-    },
-    {
-        id: '2',
-        name: 'Customer Onboarding',
-        description: 'Streamline new customer documentation workflow',
-        runs: 89,
-        createdBy: 'Jane Smith',
-        createdAt: '2024-02-10'
-    }
-];
+import { chatService } from '@/services/chat-service';
+import { Chat } from '@/types/chat-api';
+import { useChat } from '@/hooks/use-chat';
 
 export default function WorkflowsPage() {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [chats, setChats] = useState<Chat[]>([]);
+    const [isLoadingChats, setIsLoadingChats] = useState(false);
+    const { deleteChat } = useChat();
 
-    const handleDelete = (id: string) => {
-        // Implement delete logic
-        console.log('Deleting workflow:', id);
+    useEffect(() => {
+        const fetchChats = async () => {
+            setIsLoadingChats(true);
+            try {
+                const response = await chatService.listChats();
+                setChats(response.data);
+            } catch (error) {
+                console.error('Failed to fetch chats:', error);
+            } finally {
+                setIsLoadingChats(false);
+            }
+        };
+
+        fetchChats();
+    }, []);
+
+    const handleDelete = async (id: string) => {
+        await deleteChat(parseInt(id));
+        setChats(chats.filter(chat => chat.id !== parseInt(id)));
     };
 
     return (
@@ -78,35 +80,41 @@ export default function WorkflowsPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-zinc-200">
-                            {workflows.map((workflow) => (
-                                <tr key={workflow.id} className="hover:bg-zinc-50">
+                            {chats.map((chat) => (
+                                <tr key={chat.id} className="hover:bg-zinc-50">
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <Link
-                                            href={`/dashboard/workflows/${workflow.id}`}
+                                            href={`/dashboard/workflows/${chat.id}`}
                                             className="text-sm font-medium text-zinc-900 hover:text-purple-600"
                                         >
-                                            {workflow.name}
+                                            {chat.title}
                                         </Link>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <p className="text-sm text-zinc-500 line-clamp-1">{workflow.description}</p>
+                                        <p className="text-sm text-zinc-500 line-clamp-1">
+                                            {chat.messages?.length > 0 ? chat.messages[0].content : 'No description'}
+                                        </p>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <span className="text-sm text-zinc-600 flex items-center gap-1">
                                             <PlayIcon className="h-4 w-4" />
-                                            {workflow.runs}
+                                            {chat.messages?.length}
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <span className="text-sm text-zinc-600 flex items-center gap-1">
                                             <UserIcon className="h-4 w-4" />
-                                            {workflow.createdBy}
+                                            {chat.user_id}
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <span className="text-sm text-zinc-600 flex items-center gap-1">
                                             <CalendarIcon className="h-4 w-4" />
-                                            {new Date(workflow.createdAt).toLocaleDateString()}
+                                            {new Date(chat.created_at).toLocaleDateString(undefined, {
+                                                year: 'numeric',
+                                                month: 'short',
+                                                day: 'numeric'
+                                            })}
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right">
@@ -117,7 +125,7 @@ export default function WorkflowsPage() {
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent>
-                                                <DropdownMenuItem onClick={() => handleDelete(workflow.id)} className="flex items-center gap-2 text-red-600 focus:text-red-500">
+                                                <DropdownMenuItem onClick={() => handleDelete(chat.id.toString())} className="flex items-center gap-2 text-red-600 focus:text-red-500">
                                                     <TrashIcon className="h-4 w-4" />
                                                     Delete
                                                 </DropdownMenuItem>
