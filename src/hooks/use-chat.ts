@@ -78,15 +78,16 @@ export function useChat(options: UseChatOptions = {}) {
         }
     }, [handleError]);
 
-    const addMessage = useCallback(async (
+    const sendMessage = useCallback(async (
         chatId: number,
+        previousMessage: ChatMessage,
         message: string,
         onUpdate: (message: ChatMessage) => void
     ): Promise<void> => {
         setIsLoading(true);
         setError(null);
         try {
-            await chatService.addMessage(chatId, { message }, onUpdate);
+            return await chatService.sendMessage(chatId, { message }, previousMessage, onUpdate);
         } catch (err) {
             handleError(err as Error);
             throw err;
@@ -114,7 +115,7 @@ export function useChat(options: UseChatOptions = {}) {
         listChats,
         getChat,
         getChatMessages,
-        addMessage,
+        sendMessage,
         deleteChat
     };
 } 

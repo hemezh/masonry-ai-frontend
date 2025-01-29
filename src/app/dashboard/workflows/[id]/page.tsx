@@ -12,7 +12,7 @@ import { useParams } from 'next/navigation';
 
 export default function WorkflowChatPage() {
     const params = useParams();
-    const workflowId = params?.id as string;
+    const chatId = params?.id as string;
 
     const [prompt, setPrompt] = useState('');
     const [messages, setMessages] = useState<ChatMessageType[]>([]);
@@ -21,7 +21,7 @@ export default function WorkflowChatPage() {
 
     const {
         isLoading,
-        addMessage: sendMessage,
+        sendMessage,
         getChat
     } = useChat({
         onError: (error) => {
@@ -31,7 +31,8 @@ export default function WorkflowChatPage() {
                 const lastMessage = updated[updated.length - 1];
                 updated[updated.length - 1] = {
                     ...lastMessage,
-                    content: error.message,
+                    blocks: [{ type: 'text', content: error.message }],
+                    steps: {},
                     status: "failed"
                 };
                 return updated;
@@ -52,8 +53,22 @@ export default function WorkflowChatPage() {
             if (!isInitialLoad) return;
 
             try {
-                const chat = await getChat(parseInt(workflowId));
-                if (chat.messages.length > 0) {
+                const chat = await getChat(parseInt(chatId));
+                if (chat && chat.messages && chat.messages.length > 0) {
+                    // Convert old message format to new block format if needed
+                    chat.messages = chat.messages.map(message => {
+                        if (!message.blocks || message.blocks.length === 0) {
+                            return {
+                                ...message,
+                                blocks: [{
+                                    type: 'text',
+                                    content: message.content || ''
+                                }],
+                                steps: message.steps || {}
+                            };
+                        }
+                        return message;
+                    });
                     setMessages(chat.messages);
                 }
             } catch (error) {
@@ -63,10 +78,10 @@ export default function WorkflowChatPage() {
             }
         };
 
-        if (workflowId) {
+        if (chatId) {
             loadWorkflow();
         }
-    }, [workflowId, getChat, isInitialLoad]);
+    }, [chatId, getChat, isInitialLoad]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -74,34 +89,31 @@ export default function WorkflowChatPage() {
 
         const userMessage: ChatMessageType = {
             role: "user",
-            type: "text",
-            content: prompt,
+            blocks: [{ type: 'text', content: prompt }],
+            steps: {},
             status: "success"
         };
 
-        // Add user message immediately
         setMessages(prev => [...prev, userMessage]);
 
-        // Add initial loading assistant message
         const loadingMessage: ChatMessageType = {
             role: "assistant",
-            type: "text",
-            content: "",
+            blocks: [],
+            steps: {},
             status: "loading"
         };
+
         setMessages(prev => [...prev, loadingMessage]);
 
         try {
             await sendMessage(
-                parseInt(workflowId),
+                parseInt(chatId),
+                loadingMessage,
                 prompt,
                 (message) => {
                     setMessages(prev => {
                         const updated = [...prev];
-                        updated[updated.length - 1] = {
-                            ...updated[updated.length - 1],
-                            content: updated[updated.length - 1].content + message.content
-                        };
+                        updated[updated.length - 1] = message;
                         return updated;
                     });
                 }
@@ -132,7 +144,7 @@ export default function WorkflowChatPage() {
                     <div className="overflow-y-auto">
                         <div className="space-y-6">
                             {messages.map((message, index) => (
-                                < ChatMessage key={index} message={message} />
+                                <ChatMessage key={index} message={message} />
                             ))}
                             <div ref={messagesEndRef} />
                         </div>

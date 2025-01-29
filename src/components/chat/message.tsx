@@ -1,89 +1,71 @@
-import { UserIcon } from "@heroicons/react/24/solid"
+import { CheckBadgeIcon, CheckIcon, UserIcon } from "@heroicons/react/24/solid"
 import { cn } from "@/lib/utils"
 import { WorkflowStep, WorkflowCreationMessage, WorkflowExecutionMessage, WorkflowModificationMessage } from "@/types/chat"
-import { Loader2, CheckCircle, XCircle, RefreshCcw, ArrowRight } from "lucide-react"
+import { Loader2, CheckCircle, XCircle, RefreshCcw, ArrowRight, SkipForward } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { ChatMessage as ChatMessageType } from "@/types/chat-api"
+import { ChatMessage as ChatMessageType, Step, ContentBlock as ContentBlockType } from "@/types/chat-api"
+import ReactMarkdown from 'react-markdown'
+import { CheckCircleIcon, ChevronDownIcon, ChevronRightIcon } from "@heroicons/react/24/outline"
 
-interface ChatMessageProps {
-    message: ChatMessageType
+interface ContentBlockProps {
+    block: ContentBlockType;
+    steps: Record<string, Step>;
 }
 
-function WorkflowSteps({ steps }: { steps?: WorkflowStep[] }) {
-    if (!steps?.length) return null;
-
-    return (
-        <div className="mt-4 space-y-3">
-            {steps.map((step) => (
-                <div key={step.id} className="flex items-center gap-3 text-sm">
-                    {step.status === "running" && <Loader2 className="h-4 w-4 animate-spin text-blue-500" />}
-                    {step.status === "success" && <CheckCircle className="h-4 w-4 text-green-500" />}
-                    {step.status === "failed" && <XCircle className="h-4 w-4 text-red-500" />}
-                    {step.status === "retrying" && <RefreshCcw className="h-4 w-4 animate-spin text-orange-500" />}
-                    {step.status === "pending" && <div className="h-4 w-4 rounded-full border-2 border-zinc-300" />}
-                    <span className="flex-1">{step.name}</span>
-                    <span className="text-zinc-500">{step.description}</span>
+function ContentBlock({ block, steps }: ContentBlockProps) {
+    if (block.type === 'text') {
+        return (
+            <div className="prose prose-sm max-w-none text-zinc-600 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+                <div className="[&>h1]:mt-4 [&>h1]:mb-2 [&>h1]:text-base [&>h1]:font-bold [&>h2]:mt-3 [&>h2]:mb-2 [&>h2]:text-base [&>h3]:mt-3 [&>h3]:mb-1 [&>h3]:text-base 
+                              [&>p]:my-1.5 [&>ul]:my-2 [&>ol]:my-2 [&>li]:my-0.5
+                              [&>pre]:my-2 [&>pre]:p-3 [&>pre]:rounded-md
+                              [&>p>code]:bg-zinc-100 [&>p>code]:px-1.5 [&>p>code]:py-0.5 [&>p>code]:rounded-md
+                              [&>p>code]:before:hidden [&>p>code]:after:hidden [&>p>code]:text-sm">
+                    <ReactMarkdown>{block.content}</ReactMarkdown>
                 </div>
-            ))}
-        </div>
-    );
-}
-
-function WorkflowCreationContent({ message }: { message: WorkflowCreationMessage }) {
-    return (
-        <div>
-            <p className="text-sm text-zinc-600">{message.content}</p>
-            <WorkflowSteps steps={message.steps} />
-            {message.workflowUrl && (
-                <div className="mt-4">
-                    <Button asChild variant="outline" size="sm">
-                        <Link href={message.workflowUrl}>
-                            View Workflow <ArrowRight className="ml-2 h-4 w-4" />
-                        </Link>
-                    </Button>
-                </div>
-            )}
-        </div>
-    );
-}
-
-function WorkflowExecutionContent({ message }: { message: WorkflowExecutionMessage }) {
-    return (
-        <div>
-            <div className="flex items-center gap-2 mb-2">
-                <p className="text-sm text-zinc-600">Execution ID: {message.executionId}</p>
             </div>
-            <p className="text-sm text-zinc-600">{message.content}</p>
-            <WorkflowSteps steps={message.steps} />
-        </div>
-    );
+        );
+    }
+
+    if (block.type === 'step' && block.stepId) {
+        const step = steps[block.stepId];
+        if (!step) return null;
+
+        return (
+            <div className="flex items-center gap-3 text-sm my-2 px-4 py-2 border bg-white border-zinc-200 rounded-md transition-all duration-300">
+                <StepStatus status={step.status} />
+                <span className="flex-1">{step.content}</span>
+                <ChevronDownIcon className="h-4 w-4 text-zinc-500" />
+            </div>
+        );
+    }
+
+    return null;
 }
 
-function WorkflowModificationContent({ message }: { message: WorkflowModificationMessage }) {
-    return (
-        <div>
-            <p className="text-sm text-zinc-600">{message.content}</p>
-            {message.changes && (
-                <div className="mt-2 space-y-1">
-                    {message.changes.map((change, index) => (
-                        <p key={index} className="text-sm text-zinc-500">• {change}</p>
-                    ))}
-                </div>
-            )}
-            <WorkflowSteps steps={message.steps} />
-        </div>
-    );
+function StepStatus({ status }: { status: Step['status'] }) {
+    switch (status) {
+        case 'running':
+            return <Loader2 className="h-5 w-5 animate-spin text-blue-500" />;
+        case 'completed':
+            return <CheckCircleIcon className="h-5 w-5 text-green-500" />;
+        case 'failed':
+            return <XCircle className="h-5 w-5 text-red-500" />;
+        case 'skipped':
+            return <SkipForward className="h-5 w-5 text-zinc-500" />;
+        case 'pending':
+        default:
+            return <div className="h-5 w-5 rounded-full border-2 border-zinc-300" />;
+    }
 }
 
-export function ChatMessage({ message }: ChatMessageProps) {
+export function ChatMessage({ message }: { message: ChatMessageType }) {
     return (
-        <div
-            className={cn(
-                "flex gap-4",
-                message.role === "assistant" && "bg-zinc-50 p-4 rounded-lg"
-            )}
-        >
+        <div className={cn(
+            "flex gap-4",
+            message.role === "assistant" && "bg-zinc-50 p-4 rounded-lg"
+        )}>
             {message.role === "user" && (
                 <div className="w-8 h-8 rounded-full bg-zinc-200 flex items-center justify-center flex-shrink-0">
                     <UserIcon className="h-5 w-5 text-zinc-600" />
@@ -101,20 +83,16 @@ export function ChatMessage({ message }: ChatMessageProps) {
                         <XCircle className="h-4 w-4 text-red-500" />
                     )}
                 </div>
-
-                {/* {message.type === "text" && ( */}
-                <p className="text-sm text-zinc-600 mt-1">{message.content}</p>
-                {/* )} */}
-                {/* {message.type === "workflow_creation" && (
-                    <WorkflowCreationContent message={message as WorkflowCreationMessage} />
-                )}
-                {message.type === "workflow_execution" && (
-                    <WorkflowExecutionContent message={message as WorkflowExecutionMessage} />
-                )}
-                {message.type === "workflow_modification" && (
-                    <WorkflowModificationContent message={message as WorkflowModificationMessage} />
-                )} */}
+                <div className="mt-1 space-y-2">
+                    {message.blocks.map((block: ContentBlockType, index: number) => (
+                        <ContentBlock
+                            key={`${block.type}-${index}`}
+                            block={block}
+                            steps={message.steps}
+                        />
+                    ))}
+                </div>
             </div>
         </div>
-    )
-} 
+    );
+}

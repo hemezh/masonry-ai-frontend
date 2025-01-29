@@ -6,17 +6,13 @@ import {
     ChatsListResponse,
     MessagesResponse,
     CreateChatRequest,
-    AddMessageRequest
+    AddMessageRequest,
+    Step,
+    SSEEvent
 } from '@/types/chat-api';
 
-interface SSEEvent {
-    type: 'message' | 'error' | 'done';
-    content: string;
-    sequence?: number;  // Add sequence number for ordering
-}
-
 class ChatService {
-    private messageBuffer: Map<number, string>;
+    private messageBuffer: Map<number, SSEEvent>;
     private nextSequence: number;
 
     constructor() {
@@ -48,7 +44,8 @@ class ChatService {
 
     private async processSSEStream(
         reader: ReadableStreamDefaultReader<Uint8Array>,
-        onMessage: (message: ChatMessage) => void
+        onMessage: (message: ChatMessage) => void,
+        previousMessage: ChatMessage
     ): Promise<void> {
         const decoder = new TextDecoder();
         let buffer = '';
@@ -63,7 +60,7 @@ class ChatService {
                 if (done) {
                     // Process any remaining buffered data
                     if (buffer.trim()) {
-                        this.processLine(buffer, onMessage);
+                        this.processLine(buffer, previousMessage, onMessage);
                     }
                     break;
                 }
@@ -76,7 +73,7 @@ class ChatService {
 
                 // Process complete lines
                 for (const line of lines) {
-                    await this.processLine(line, onMessage);
+                    await this.processLine(line, previousMessage, onMessage);
                 }
             }
         } catch (error) {
@@ -84,37 +81,49 @@ class ChatService {
             throw new Error(`Stream processing error: ${error}`);
         } finally {
             // Flush any remaining buffered messages in order
-            this.flushBuffer(onMessage);
+            this.flushBuffer(previousMessage, onMessage);
         }
     }
 
-    private async processLine(line: string, onMessage: (message: ChatMessage) => void): Promise<void> {
-        console.log(line, "line in processLine");
+    private async processLine(
+        line: string,
+        previousMessage: ChatMessage,
+        onMessage: (message: ChatMessage) => void
+    ): Promise<void> {
         if (!line.startsWith('data:')) return;
 
         try {
             const data = line.slice(5);
             if (!data.trim()) return;
 
-            // Try to parse as JSON first
             try {
                 const eventData = JSON.parse(data) as SSEEvent;
 
-                if (eventData.type === 'error') {
-                    throw new Error(eventData.content || 'Server error occurred');
+                if (eventData.event === 'error') {
+                    const errorMessage: ChatMessage = {
+                        role: "assistant",
+                        blocks: [{ type: 'text', content: eventData.data.content || '' }],
+                        steps: {},
+                        status: "error"
+                    };
+                    onMessage(errorMessage);
+                    return;
                 }
 
-                // If we have a sequence number, use ordered processing
                 if (eventData.sequence !== undefined) {
-                    this.messageBuffer.set(eventData.sequence, eventData.content);
-                    this.flushBuffer(onMessage);
+                    this.messageBuffer.set(eventData.sequence, eventData);
+                    this.flushBuffer(previousMessage, onMessage);
                 } else {
-                    // Fall back to immediate processing for non-sequenced messages
-                    this.emitMessage(eventData.content, onMessage);
+                    this.processEvent(eventData, previousMessage, onMessage);
                 }
             } catch (parseError) {
-                // If not valid JSON, treat as raw content
-                this.emitMessage(data, onMessage);
+                this.processEvent({
+                    event: 'message',
+                    data: { content: data },
+                    id: crypto.randomUUID(),
+                    timestamp: Date.now(),
+                    sequence: this.nextSequence
+                } as SSEEvent, previousMessage, onMessage);
             }
         } catch (error) {
             console.error('Error processing SSE line:', error);
@@ -122,40 +131,83 @@ class ChatService {
         }
     }
 
-    private flushBuffer(onMessage: (message: ChatMessage) => void): void {
+
+    private flushBuffer(previousMessage: ChatMessage, onMessage: (message: ChatMessage) => void): void {
         while (this.messageBuffer.has(this.nextSequence)) {
-            const content = this.messageBuffer.get(this.nextSequence);
+            const event = this.messageBuffer.get(this.nextSequence);
             this.messageBuffer.delete(this.nextSequence);
-            this.emitMessage(content!, onMessage);
+            if (event) {
+                this.processEvent(event, previousMessage, onMessage);
+            }
             this.nextSequence++;
         }
     }
 
-    private emitMessage(content: string, onMessage: (message: ChatMessage) => void): void {
-        if (content.includes('done')) {
-            return;  // Don't emit 'done' markers as messages
+    private processEvent(
+        event: SSEEvent,
+        previousMessage: ChatMessage,
+        onMessage: (message: ChatMessage) => void
+    ): void {
+        if (event.event === 'message' && event.data.content?.includes('done')) {
+            return;
         }
 
-        onMessage({
-            role: "assistant",
-            type: "text",
-            content: content,
-            status: 'success'
-        });
+        const message: ChatMessage = previousMessage;
+
+        if (event.event === 'message') {
+            // Add new text block if there's content
+            if (event.data.content?.trim()) {
+                const lastBlock = message.blocks[message.blocks.length - 1];
+                if (lastBlock?.type === 'text') {
+                    lastBlock.content += event.data.content;
+                } else {
+                    message.blocks.push({
+                        type: 'text',
+                        content: event.data.content
+                    });
+                }
+            }
+        } else if (event.event === 'step' && event.data) {
+            const step: Step = {
+                id: event.data.id,
+                status: event.data.status,
+                content: event.data.content
+            };
+
+            const existingStepId = Object.keys(message.steps).find(id => id === step.id);
+
+            if (existingStepId) {
+                // Update existing step
+                message.steps[step.id] = step;
+            } else {
+                // Add new step
+                message.steps[step.id] = step;
+                message.blocks.push({
+                    type: 'step',
+                    content: step.content || '',
+                    stepId: step.id
+                });
+            }
+        }
+
+        onMessage(message);
     }
 
-    async addMessage(
+    async sendMessage(
         chatId: number,
         data: AddMessageRequest,
+        previousMessage: ChatMessage,
         onMessage: (message: ChatMessage) => void
     ): Promise<void> {
         try {
+            const headers = {
+                'Content-Type': 'application/json',
+                ...(apiClient.defaults.headers.common as Record<string, string>)
+            };
+
             const response = await fetch(`${apiClient.defaults.baseURL}/chats/${chatId}/messages`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...apiClient.defaults.headers.common  // Include any auth headers etc.
-                },
+                headers,
                 body: JSON.stringify(data)
             });
 
@@ -168,13 +220,13 @@ class ChatService {
             }
 
             const reader = response.body.getReader();
-            await this.processSSEStream(reader, onMessage);
+            await this.processSSEStream(reader, onMessage, previousMessage);
         } catch (error) {
             // Emit error message to client
             onMessage({
                 role: "assistant",
-                type: "text",
-                content: "An error occurred while processing your message.",
+                blocks: [{ type: 'text', content: "An error occurred while processing your message." }],
+                steps: {},
                 status: 'error'
             });
             throw error;
