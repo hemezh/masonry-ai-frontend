@@ -34,11 +34,41 @@ class ChatService {
 
     async getChat(id: number): Promise<Chat> {
         const response = await apiClient.get<ChatResponse>(`/chats/${id}`);
+        response.data.data.messages = response.data.data.messages.map(message => {
+            if (message.blocks) {
+                message.steps = message.steps || {};
+                message.blocks.forEach(block => {
+                    if (block.type === 'step' && block.stepId) {
+                        message.steps[block.stepId] = {
+                            id: block.stepId,
+                            status: block.stepStatus || 'pending',
+                            content: block.content
+                        }
+                    }
+                });
+                    
+            }
+            return message;
+        });
         return response.data.data;
     }
 
     async getChatMessages(chatId: number): Promise<ChatMessage[]> {
         const response = await apiClient.get<MessagesResponse>(`/chats/${chatId}/messages`);
+        response.data.data.forEach(message => {
+            if (message.blocks) {
+                message.steps = message.steps || {};
+                message.blocks.forEach(block => {
+                    if (block.type === 'step' && block.stepId) {
+                        message.steps[block.stepId] = {
+                            id: block.stepId,
+                            status: block.stepStatus || 'pending',
+                            content: block.content
+                        }
+                    }
+                });
+            }
+        });
         return response.data.data;
     }
 

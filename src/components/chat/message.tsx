@@ -14,6 +14,8 @@ interface ContentBlockProps {
 }
 
 function ContentBlock({ block, steps }: ContentBlockProps) {
+    console.log("block", block);
+    console.log("steps", steps);
     if (block.type === 'text') {
         return (
             <div className="prose prose-sm max-w-none text-zinc-600 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">

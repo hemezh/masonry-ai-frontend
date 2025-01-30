@@ -49,6 +49,7 @@ export interface ContentBlock {
     type: 'text' | 'step';
     content: string;
     stepId?: string;
+    stepStatus?: 'pending' | 'running' | 'completed' | 'failed' | 'skipped';
 }
 
 export interface ChatMessage {

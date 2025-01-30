@@ -68,7 +68,7 @@ export default function WorkflowChatPage() {
                                     type: 'text',
                                     content: message.content || ''
                                 }],
-                                steps: message.steps || {}
+                                steps: message.steps || {},
                             };
                         }
                         return message;
@@ -99,7 +99,7 @@ export default function WorkflowChatPage() {
             setHasHandledInitialPrompt(true);
         }
     }, [initialPrompt, hasHandledInitialPrompt, isInitialLoad]);
-    
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         await handleMessageUpdate(prompt);
@@ -171,7 +171,7 @@ export default function WorkflowChatPage() {
                             <div ref={messagesEndRef} />
                         </div>
                     </div>
-                    <div className="sticky bottom-0 bg-white pt-4">
+                    <div className="sticky bottom-0 bg-white py-4">
                         <ChatInput
                             prompt={prompt}
                             hasStarted={true}
