@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { ChatInput } from '@/components/chat/chat-input';
 import { useChat } from '@/hooks/use-chat';
 import { useRouter } from 'next/navigation';
+import { ChatMessage as ChatMessageType } from '@/types/chat-api';
 
 export default function CreateWorkflowPage() {
     const router = useRouter();
@@ -19,9 +20,10 @@ export default function CreateWorkflowPage() {
 
         try {
             // Create new chat/workflow
-            const chat = await createChat("current_user", prompt);
+            const chat = await createChat("current_user", '');
+
             // Redirect to the workflow chat page
-            router.push(`/dashboard/workflows/${chat.id}`);
+            router.push(`/dashboard/workflows/${chat.id}?prompt=${encodeURIComponent(prompt)}`);
         } catch (error) {
             console.error('Failed to create workflow:', error);
         }

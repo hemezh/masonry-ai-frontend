@@ -61,6 +61,10 @@ export interface ChatMessage {
     content?: string;
     created_at?: string;
     updated_at?: string;
+    metadata?: {
+        is_initial_message?: boolean;
+        [key: string]: any;
+    };
 }
 
 export interface Chat {

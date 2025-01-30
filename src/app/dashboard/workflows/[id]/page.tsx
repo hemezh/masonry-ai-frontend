@@ -6,19 +6,23 @@ import { ArrowLeftIcon } from '@heroicons/react/24/solid';
 import Link from 'next/link';
 import { ChatMessage } from '@/components/chat/message';
 import { ChatInput } from '@/components/chat/chat-input';
-import { ChatMessage as ChatMessageType } from '@/types/chat-api';
+import { ChatMessage as ChatMessageType, Chat as ChatType } from '@/types/chat-api';
 import { useChat } from '@/hooks/use-chat';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams, useRouter } from 'next/navigation';
 
 export default function WorkflowChatPage() {
     const params = useParams();
     const chatId = params?.id as string;
-
+    const searchParams = useSearchParams();
+    const router = useRouter();
     const [prompt, setPrompt] = useState('');
+    const [chat, setChat] = useState<ChatType | null>(null);
     const [messages, setMessages] = useState<ChatMessageType[]>([]);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const [isInitialLoad, setIsInitialLoad] = useState(true);
-
+    const [initialPrompt, setInitialPrompt] = useState('');
+    const [hasHandledInitialPrompt, setHasHandledInitialPrompt] = useState(false);
+    
     const {
         isLoading,
         sendMessage,
@@ -54,8 +58,8 @@ export default function WorkflowChatPage() {
 
             try {
                 const chat = await getChat(parseInt(chatId));
+                setChat(chat);
                 if (chat && chat.messages && chat.messages.length > 0) {
-                    // Convert old message format to new block format if needed
                     chat.messages = chat.messages.map(message => {
                         if (!message.blocks || message.blocks.length === 0) {
                             return {
@@ -71,6 +75,12 @@ export default function WorkflowChatPage() {
                     });
                     setMessages(chat.messages);
                 }
+                
+                const promptParam = searchParams.get('prompt');
+                if (promptParam) {
+                    setInitialPrompt(promptParam);
+                    router.replace(`/dashboard/workflows/${chatId}`);
+                }
             } catch (error) {
                 console.error('Failed to load workflow:', error);
             } finally {
@@ -83,8 +93,20 @@ export default function WorkflowChatPage() {
         }
     }, [chatId, getChat, isInitialLoad]);
 
+    useEffect(() => {
+        if (initialPrompt && !hasHandledInitialPrompt && !isInitialLoad) {
+            handleMessageUpdate(initialPrompt);
+            setHasHandledInitialPrompt(true);
+        }
+    }, [initialPrompt, hasHandledInitialPrompt, isInitialLoad]);
+    
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        await handleMessageUpdate(prompt);
+    };
+
+    const handleMessageUpdate = async (prompt: string) => {
+
         if (!prompt.trim()) return;
 
         const userMessage: ChatMessageType = {
@@ -134,7 +156,7 @@ export default function WorkflowChatPage() {
                     </Link>
                 </Button>
                 <div>
-                    <h1 className="text-2xl font-semibold text-zinc-900">Edit Workflow</h1>
+                    <h1 className="text-2xl font-semibold text-zinc-900">{chat?.title || 'Edit Workflow'}</h1>
                     <p className="text-sm text-zinc-500">Modify your workflow using natural language</p>
                 </div>
             </div>
