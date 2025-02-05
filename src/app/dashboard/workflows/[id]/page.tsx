@@ -2,13 +2,14 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowLeftIcon } from '@heroicons/react/24/solid';
+import { ArrowLeftIcon, ArrowUpRightIcon, PlayIcon, ShareIcon, UserPlusIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import { ChatMessage } from '@/components/chat/message';
 import { ChatInput } from '@/components/chat/chat-input';
 import { ChatMessage as ChatMessageType, Chat as ChatType } from '@/types/chat-api';
 import { useChat } from '@/hooks/use-chat';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
+import { ArrowUpOnSquareIcon } from '@heroicons/react/24/outline';
 
 export default function WorkflowChatPage() {
     const params = useParams();
@@ -148,20 +149,8 @@ export default function WorkflowChatPage() {
     };
 
     return (
-        <div className="flex flex-col h-[calc(100vh-4rem)] p-8">
-            <div className="mb-8 flex items-center gap-4">
-                <Button variant="ghost" size="icon" asChild>
-                    <Link href="/dashboard/workflows">
-                        <ArrowLeftIcon className="h-5 w-5" />
-                    </Link>
-                </Button>
-                <div>
-                    <h1 className="text-2xl font-semibold text-zinc-900">{chat?.title || 'Edit Workflow'}</h1>
-                    <p className="text-sm text-zinc-500">Modify your workflow using natural language</p>
-                </div>
-            </div>
-
-            <div className="flex-1 flex flex-col max-w-3xl mx-auto w-full">
+        <div className="flex flex-col">
+            <div className="flex-1 flex flex-col max-w-3xl mx-auto w-full min-h-[calc(100vh-4rem)]">
                 <div className="flex-1 flex flex-col justify-end">
                     <div className="overflow-y-auto">
                         <div className="space-y-6">

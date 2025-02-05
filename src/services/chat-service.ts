@@ -42,7 +42,8 @@ class ChatService {
                         message.steps[block.stepId] = {
                             id: block.stepId,
                             status: block.stepStatus || 'pending',
-                            content: block.content
+                            content: block.content,
+                            details: block.details
                         }
                     }
                 });
@@ -201,7 +202,8 @@ class ChatService {
             const step: Step = {
                 id: event.data.id,
                 status: event.data.status,
-                content: event.data.content
+                content: event.data.content,
+                details: event.data.details
             };
 
             const existingStepId = Object.keys(message.steps).find(id => id === step.id);

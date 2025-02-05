@@ -7,6 +7,9 @@ import Link from "next/link"
 import { ChatMessage as ChatMessageType, Step, ContentBlock as ContentBlockType } from "@/types/chat-api"
 import ReactMarkdown from 'react-markdown'
 import { CheckCircleIcon, ChevronDownIcon, ChevronRightIcon } from "@heroicons/react/24/outline"
+import { useState } from "react"
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneDark } from 'react-syntax-highlighter/dist/cjs/styles/prism';
 
 interface ContentBlockProps {
     block: ContentBlockType;
@@ -21,10 +24,37 @@ function ContentBlock({ block, steps }: ContentBlockProps) {
             <div className="prose prose-sm max-w-none text-zinc-600 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
                 <div className="[&>h1]:mt-4 [&>h1]:mb-2 [&>h1]:text-base [&>h1]:font-bold [&>h2]:mt-3 [&>h2]:mb-2 [&>h2]:text-base [&>h3]:mt-3 [&>h3]:mb-1 [&>h3]:text-base 
                               [&>p]:my-1.5 [&>ul]:my-2 [&>ol]:my-2 [&>li]:my-0.5
-                              [&>pre]:my-2 [&>pre]:p-3 [&>pre]:rounded-md
+                              [&>pre]:my-2 [&>pre]:p-0 [&>pre]:rounded-md [&>pre]:bg-transparent
                               [&>p>code]:bg-zinc-100 [&>p>code]:px-1.5 [&>p>code]:py-0.5 [&>p>code]:rounded-md
                               [&>p>code]:before:hidden [&>p>code]:after:hidden [&>p>code]:text-sm">
-                    <ReactMarkdown>{block.content}</ReactMarkdown>
+                    <ReactMarkdown
+                        components={{
+                            code({ node, className, children, ...props }) { 
+                                const match = /language-(\w+)/.exec(className || '');
+                                const language = match ? match[1] : '';
+                                
+                                if (language) {
+                                    return (
+                                        <SyntaxHighlighter
+                                            style={oneDark}
+                                            language={language}
+                                            PreTag="div"
+                                            customStyle={{
+                                                margin: '0.5rem 0',
+                                                borderRadius: '0.375rem'
+                                            }}
+                                            {...props}
+                                        >
+                                            {String(children).replace(/\n$/, '')}
+                                        </SyntaxHighlighter>
+                                    );
+                                }
+                                return <code className={className} {...props}>{children}</code>;
+                            }
+                        }}
+                    >
+                        {block.content}
+                    </ReactMarkdown>
                 </div>
             </div>
         );
@@ -34,11 +64,52 @@ function ContentBlock({ block, steps }: ContentBlockProps) {
         const step = steps[block.stepId];
         if (!step) return null;
 
+        const [showDetails, setShowDetails] = useState(false);
         return (
-            <div className="flex items-center gap-3 text-sm my-2 px-4 py-2 border bg-white border-zinc-200 rounded-md transition-all duration-300">
-                <StepStatus status={step.status} />
-                <span className="flex-1">{step.content}</span>
-                <ChevronDownIcon className="h-4 w-4 text-zinc-500" />
+            <div className="flex flex-col my-2 px-4 py-1 border bg-white border-zinc-200 rounded-md transition-all duration-300 text-sm">
+                <div
+                    className="flex items-center gap-3 py-1 "
+                    onClick={() => setShowDetails(!showDetails)}
+                >
+                    <StepStatus status={step.status} />
+                    <span className="flex-1">{step.content}</span>
+                    {step.details && <ChevronDownIcon className={cn("h-4 w-4 text-zinc-500 transition-transform", showDetails && "rotate-180")} />}
+                </div>
+                {showDetails && step.details && (
+                    <div className="max-w-none text-zinc-600 bg-zinc-50 rounded-md [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 ml-6">
+                        <ReactMarkdown
+                            components={{
+                                code({ node, className, children, ...props }) {
+                                    const match = /language-(\w+)/.exec(className || '');
+                                    const language = match ? match[1] : '';
+
+                                    if (language) {
+                                    return (
+                                        <SyntaxHighlighter
+                                            style={oneDark}
+                                            language={language}
+                                            PreTag="div"
+                                            customStyle={{
+                                                maxWidth: '678px',
+                                                borderRadius: '0.375rem',
+                                                overflow: 'auto',
+                                                scrollbarWidth: 'thin',
+                                                scrollbarColor: 'gray transparent'
+                                            }}
+                                            {...props}
+                                        >
+                                            {String(children).replace(/\n$/, '')}
+                                        </SyntaxHighlighter>
+                                    );
+                                }
+                                return <code className={className} {...props}>{children}</code>;
+                            }
+                        }}
+                    >
+                        {step.details}
+                    </ReactMarkdown>
+                    </div>
+                )}
             </div>
         );
     }

@@ -9,6 +9,7 @@ export interface StepData {
     id: string;
     status: 'pending' | 'running' | 'completed' | 'failed' | 'skipped';
     content?: string;
+    details?: string;
     complete_time?: number;
 }
 
@@ -42,6 +43,7 @@ export interface Step {
     id: string;
     status: 'pending' | 'running' | 'completed' | 'failed' | 'skipped';
     content?: string;
+    details?: string;
 }
 
 // Each content block represents either text or a step
@@ -50,6 +52,7 @@ export interface ContentBlock {
     content: string;
     stepId?: string;
     stepStatus?: 'pending' | 'running' | 'completed' | 'failed' | 'skipped';
+    details?: string;
 }
 
 export interface ChatMessage {

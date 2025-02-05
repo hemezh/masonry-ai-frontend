@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { HomeIcon, CpuChipIcon, PlayIcon, PuzzlePieceIcon, Cog6ToothIcon, QuestionMarkCircleIcon, UserIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
+import { HomeIcon, CpuChipIcon, PlayIcon, PuzzlePieceIcon, Cog6ToothIcon, QuestionMarkCircleIcon, UserIcon, ArrowRightIcon, PlusIcon, ChevronUpDownIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import {
     DropdownMenu,
@@ -20,16 +20,60 @@ const navigation = [
     { name: 'Integrations', href: '/dashboard/integrations', icon: PuzzlePieceIcon },
 ];
 
+const workspaces = [
+    { id: 1, name: 'Personal', slug: 'personal' },
+    { id: 2, name: 'Team Alpha', slug: 'team-alpha' },
+    { id: 3, name: 'Project X', slug: 'project-x' },
+];
+
 
 export default function Sidebar() {
     const pathname = usePathname();
+    const [currentWorkspace, setCurrentWorkspace] = useState(workspaces[0]);
 
     return (
         <div className="hidden md:flex max-h-screen">
             <div className="w-64">
                 <div className="flex h-full flex-col border-r border-zinc-100/10 bg-zinc-50">
-                    <div className="flex flex-col overflow-y-auto h-full">
+                    <div className="flex flex-col overflow-y-auto overflow-x-hidden h-full">
 
+                        <div className="flex items-center min-w-[16rem] px-4 py-4 gap-4">
+                            {/* Logo */}
+                            <svg
+                                className="h-8 w-8 text-zinc-900"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                            >
+                                <rect x="3" y="3" width="8" height="8" rx="1" className="fill-current" />
+                                <rect x="13" y="3" width="8" height="8" rx="1" className="fill-current" />
+                                <rect x="3" y="13" width="8" height="8" rx="1" className="fill-current" />
+                                <rect x="13" y="13" width="8" height="8" rx="1" className="fill-current" />
+                            </svg>
+
+                            {/* Workspace Switcher */}
+                            <DropdownMenu>
+                                <DropdownMenuTrigger className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm bg-zinc-100 text-zinc-600 hover:bg-zinc-100 transition-colors duration-200">
+                                    <span className="truncate">{currentWorkspace.name}</span>
+                                    <ChevronUpDownIcon className="ml-2 h-4 w-4 text-zinc-400" />
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent className="text-xs">
+                                    {workspaces.map((workspace) => (
+                                        <DropdownMenuItem
+                                            key={workspace.id}
+                                            onClick={() => setCurrentWorkspace(workspace)}
+                                        >
+                                            <span className="truncate">{workspace.name}</span>
+                                        </DropdownMenuItem>
+                                    ))}
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem>
+                                        <PlusIcon className="h-4 w-4" />
+                                        Create New Workspace
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
                         {/* Navigation */}
                         <nav className="mt-8 space-y-2 px-4">
                             {navigation.map((item) => {
