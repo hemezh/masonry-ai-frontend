@@ -58,7 +58,7 @@ export default function WorkflowChatPage() {
             if (!isInitialLoad) return;
 
             try {
-                const chat = await getChat(parseInt(chatId));
+                const chat = await getChat(chatId);
                 setChat(chat);
                 if (chat && chat.messages && chat.messages.length > 0) {
                     chat.messages = chat.messages.map(message => {
@@ -130,7 +130,7 @@ export default function WorkflowChatPage() {
 
         try {
             await sendMessage(
-                parseInt(chatId),
+                chatId,
                 loadingMessage,
                 prompt,
                 (message) => {

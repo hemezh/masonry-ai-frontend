@@ -32,7 +32,7 @@ class ChatService {
         return response.data;
     }
 
-    async getChat(id: number): Promise<Chat> {
+    async getChat(id: string): Promise<Chat> {
         const response = await apiClient.get<ChatResponse>(`/chats/${id}`);
         response.data.data.messages = response.data.data.messages.map(message => {
             if (message.blocks) {
@@ -54,7 +54,7 @@ class ChatService {
         return response.data.data;
     }
 
-    async getChatMessages(chatId: number): Promise<ChatMessage[]> {
+    async getChatMessages(chatId: string): Promise<ChatMessage[]> {
         const response = await apiClient.get<MessagesResponse>(`/chats/${chatId}/messages`);
         response.data.data.forEach(message => {
             if (message.blocks) {
@@ -226,7 +226,7 @@ class ChatService {
     }
 
     async sendMessage(
-        chatId: number,
+        chatId: string,
         data: AddMessageRequest,
         previousMessage: ChatMessage,
         onMessage: (message: ChatMessage) => void
@@ -270,7 +270,7 @@ class ChatService {
         return response.data;
     }
 
-    async deleteChat(id: number): Promise<void> {
+    async deleteChat(id: string): Promise<void> {
         await apiClient.delete(`/chats/${id}`);
     }
 }

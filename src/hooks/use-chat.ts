@@ -52,7 +52,7 @@ export function useChat(options: UseChatOptions = {}) {
         }
     }, [handleError]);
 
-    const getChat = useCallback(async (id: number): Promise<Chat> => {
+    const getChat = useCallback(async (id: string): Promise<Chat> => {
         setIsLoading(true);
         setError(null);
         try {
@@ -65,7 +65,7 @@ export function useChat(options: UseChatOptions = {}) {
         }
     }, [handleError]);
 
-    const getChatMessages = useCallback(async (chatId: number): Promise<ChatMessage[]> => {
+    const getChatMessages = useCallback(async (chatId: string): Promise<ChatMessage[]> => {
         setIsLoading(true);
         setError(null);
         try {
@@ -79,7 +79,7 @@ export function useChat(options: UseChatOptions = {}) {
     }, [handleError]);
 
     const sendMessage = useCallback(async (
-        chatId: number,
+        chatId: string,
         previousMessage: ChatMessage,
         message: string,
         onUpdate: (message: ChatMessage) => void
@@ -96,7 +96,7 @@ export function useChat(options: UseChatOptions = {}) {
         }
     }, [handleError]);
 
-    const deleteChat = useCallback(async (id: number): Promise<void> => {
+    const deleteChat = useCallback(async (id: string): Promise<void> => {
         setIsLoading(true);
         setError(null);
         try {

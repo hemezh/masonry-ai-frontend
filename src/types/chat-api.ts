@@ -56,8 +56,8 @@ export interface ContentBlock {
 }
 
 export interface ChatMessage {
-    id?: number;
-    chat_id?: number;
+    id?: string;
+    chat_id?: string;
     role: 'user' | 'assistant';
     blocks: ContentBlock[];  // Using blocks instead of a single content string
     steps: Record<string, Step>;  // Steps indexed by ID for quick lookup/update
@@ -72,7 +72,7 @@ export interface ChatMessage {
 }
 
 export interface Chat {
-    id: number;
+    id: string;
     user_id: string;
     title: string;
     messages: ChatMessage[];
