@@ -76,3 +76,25 @@
     @apply bg-zinc-50 text-foreground;
   }
 }
+
+@layer utilities {
+  .scrollbar::-webkit-scrollbar {
+    width: 20px;
+    height: 10px;
+  }
+
+  .scrollbar::-webkit-scrollbar-track {
+    border-radius: 100vh;
+    background: transparent;
+  }
+
+  .scrollbar::-webkit-scrollbar-thumb {
+    background: #555;
+    border-radius: 100vh;
+    border: 3px solid transparent;
+  }
+
+  .scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #666;
+  }
+}

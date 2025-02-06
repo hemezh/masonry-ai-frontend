@@ -8,7 +8,7 @@ import { atomOneDark } from 'react-syntax-highlighter/dist/cjs/styles/hljs'
 
 // Constants
 const MARKDOWN_STYLES = {
-    base: "prose prose-sm max-w-none text-zinc-600 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
+    base: "prose prose-sm text-zinc-600 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
     typography: "[&>h1]:mt-4 [&>h1]:mb-2 [&>h1]:text-base [&>h1]:font-bold [&>h2]:mt-3 [&>h2]:mb-2 [&>h2]:text-base [&>h3]:mt-3 [&>h3]:mb-1 [&>h3]:text-base [&>p]:my-1.5 [&>ul]:my-2 [&>ol]:my-2 [&>li]:my-0.5",
     code: "[&>pre]:my-2 [&>pre]:p-0 [&>pre]:rounded-md [&>pre]:bg-transparent [&>p>code]:bg-zinc-100 [&>p>code]:px-1.5 [&>p>code]:py-0.5 [&>p>code]:rounded-md [&>p>code]:before:hidden [&>p>code]:after:hidden [&>p>code]:text-sm",
     layout: "overflow-x-auto"
@@ -49,7 +49,7 @@ const CodeBlock: Components['code'] = ({ className, children, ...props }) => {
         <SyntaxHighlighter
             language={match[1]}
             style={atomOneDark}
-            className="rounded-md max-w-lg overflow-x-auto my-2"
+            className="rounded-md max-w-[32rem] overflow-x-auto my-2 mx-auto"
             wrapLongLines={true}
         >
             {String(children)}
@@ -68,7 +68,7 @@ const StepContent = ({ step, showDetails, contentRef }: StepContentProps) => {
                 <SyntaxHighlighter
                     language={language}
                     style={atomOneDark}
-                    className="rounded-md max-w-lg overflow-x-auto my-2"
+                    className="rounded-md max-w-[33rem] overflow-x-auto mt-2 mx-auto scrollbar"
                     wrapLongLines={true}
                 >
                     {String(children)}
@@ -126,9 +126,9 @@ const ContentBlock = ({ block, steps }: { block: ContentBlockType; steps: Record
         }, [step.details, showDetails]);
 
         return (
-            <div className="flex flex-col my-2 px-4 py-1 border bg-white border-zinc-200 rounded-md text-sm w-full">
+            <div className="flex flex-col my-2 py-1 border bg-white border-zinc-200 rounded-md text-sm">
                 <div
-                    className="flex items-center gap-3 py-1 cursor-pointer"
+                    className="flex items-center gap-2 px-2 py-1 cursor-pointer"
                     onClick={() => setShowDetails(!showDetails)}
                 >
                     <StepStatus status={step.status} />
