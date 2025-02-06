@@ -32,8 +32,8 @@ export default function WorkflowsPage() {
     }, []);
 
     const handleDelete = async (id: string) => {
-        await deleteChat(parseInt(id));
-        setChats(chats.filter(chat => chat.id !== parseInt(id)));
+        await deleteChat(id);
+        setChats(chats.filter(chat => chat.id !== id));
     };
 
     return (
@@ -87,7 +87,7 @@ export default function WorkflowsPage() {
                                             href={`/dashboard/workflows/${chat.id}`}
                                             className="text-sm font-medium text-zinc-900 hover:text-purple-600"
                                         >
-                                            {chat.title}
+                                            {chat.title || 'Untitled'}
                                         </Link>
                                     </td>
                                     <td className="px-6 py-4">

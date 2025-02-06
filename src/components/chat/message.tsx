@@ -1,58 +1,109 @@
-import { CheckBadgeIcon, CheckIcon, UserIcon } from "@heroicons/react/24/solid"
 import { cn } from "@/lib/utils"
-import { WorkflowStep, WorkflowCreationMessage, WorkflowExecutionMessage, WorkflowModificationMessage } from "@/types/chat"
-import { Loader2, CheckCircle, XCircle, RefreshCcw, ArrowRight, SkipForward } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
 import { ChatMessage as ChatMessageType, Step, ContentBlock as ContentBlockType } from "@/types/chat-api"
-import ReactMarkdown from 'react-markdown'
-import { CheckCircleIcon, ChevronDownIcon, ChevronRightIcon } from "@heroicons/react/24/outline"
-import { useState } from "react"
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { oneDark } from 'react-syntax-highlighter/dist/cjs/styles/prism';
+import ReactMarkdown, { Components } from 'react-markdown'
+import { CheckCircleIcon, ChevronDownIcon, UserIcon, ArrowPathIcon, XCircleIcon, ArrowRightIcon } from "@heroicons/react/24/outline"
+import { useEffect, useRef, useState } from "react"
+import SyntaxHighlighter from 'react-syntax-highlighter'
+import { atomOneDark } from 'react-syntax-highlighter/dist/cjs/styles/hljs'
 
-interface ContentBlockProps {
-    block: ContentBlockType;
-    steps: Record<string, Step>;
+// Constants
+const MARKDOWN_STYLES = {
+    base: "prose prose-sm max-w-none text-zinc-600 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
+    typography: "[&>h1]:mt-4 [&>h1]:mb-2 [&>h1]:text-base [&>h1]:font-bold [&>h2]:mt-3 [&>h2]:mb-2 [&>h2]:text-base [&>h3]:mt-3 [&>h3]:mb-1 [&>h3]:text-base [&>p]:my-1.5 [&>ul]:my-2 [&>ol]:my-2 [&>li]:my-0.5",
+    code: "[&>pre]:my-2 [&>pre]:p-0 [&>pre]:rounded-md [&>pre]:bg-transparent [&>p>code]:bg-zinc-100 [&>p>code]:px-1.5 [&>p>code]:py-0.5 [&>p>code]:rounded-md [&>p>code]:before:hidden [&>p>code]:after:hidden [&>p>code]:text-sm",
+    layout: "overflow-x-auto"
 }
 
-function ContentBlock({ block, steps }: ContentBlockProps) {
-    console.log("block", block);
-    console.log("steps", steps);
+// Interfaces
+interface CodeProps {
+    node?: any;
+    className?: string;
+    children: string | string[];
+    [key: string]: any;
+}
+
+interface StepContentProps {
+    step: Step;
+    showDetails: boolean;
+    contentRef: React.RefObject<HTMLDivElement>;
+}
+
+// Components
+const LoadingSpinner = () => (
+    <div className="flex-1 flex items-center justify-center min-h-[calc(100vh-15rem)]">
+        <div className="flex flex-col items-center gap-3">
+            <ArrowPathIcon className="h-8 w-8 animate-spin text-zinc-500" />
+            <p className="text-sm text-zinc-500">Loading messages...</p>
+        </div>
+    </div>
+);
+
+const CodeBlock: Components['code'] = ({ className, children, ...props }) => {
+    const match = /language-(\w+)/.exec(className || '');
+    
+    if (!match) {
+        return <code className={className} {...props}>{children}</code>;
+    }
+
+    return (
+        <SyntaxHighlighter
+            language={match[1]}
+            style={atomOneDark}
+            className="rounded-md max-w-lg overflow-x-auto my-2"
+            wrapLongLines={true}
+        >
+            {String(children)}
+        </SyntaxHighlighter>
+    );
+}
+
+const StepContent = ({ step, showDetails, contentRef }: StepContentProps) => {
+    const components: Components = {
+        code({ className, children }) {
+            const match = /language-(\w+)/.exec(className || '');
+            const language = match ? match[1] : (/^\s*[{[]/.test(String(children)) ? 'json' : 'text');
+          
+
+            return (
+                <SyntaxHighlighter
+                    language={language}
+                    style={atomOneDark}
+                    className="rounded-md max-w-lg overflow-x-auto my-2"
+                    wrapLongLines={true}
+                >
+                    {String(children)}
+                </SyntaxHighlighter>
+            );
+        }
+    };
+
+    return (
+        <div className="w-full max-w-full overflow-x-auto rounded-md bg-zinc-50 text-zinc-600">
+            <ReactMarkdown components={components}>
+                {step.details || ''}
+            </ReactMarkdown>
+        </div>
+    );
+}
+
+const StepStatus = ({ status }: { status: Step['status'] }) => {
+    const statusIcons = {
+        running: <ArrowPathIcon className="h-5 w-5 animate-spin text-blue-500" />,
+        completed: <CheckCircleIcon className="h-5 w-5 text-green-500" />,
+        failed: <XCircleIcon className="h-5 w-5 text-red-500" />,
+        skipped: <ArrowRightIcon className="h-5 w-5 text-zinc-500" />,
+        pending: <div className="h-5 w-5 rounded-full border-2 border-zinc-300" />
+    };
+
+    return statusIcons[status] || statusIcons.pending;
+}
+
+const ContentBlock = ({ block, steps }: { block: ContentBlockType; steps: Record<string, Step> }) => {
     if (block.type === 'text') {
         return (
-            <div className="prose prose-sm max-w-none text-zinc-600 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
-                <div className="[&>h1]:mt-4 [&>h1]:mb-2 [&>h1]:text-base [&>h1]:font-bold [&>h2]:mt-3 [&>h2]:mb-2 [&>h2]:text-base [&>h3]:mt-3 [&>h3]:mb-1 [&>h3]:text-base 
-                              [&>p]:my-1.5 [&>ul]:my-2 [&>ol]:my-2 [&>li]:my-0.5
-                              [&>pre]:my-2 [&>pre]:p-0 [&>pre]:rounded-md [&>pre]:bg-transparent
-                              [&>p>code]:bg-zinc-100 [&>p>code]:px-1.5 [&>p>code]:py-0.5 [&>p>code]:rounded-md
-                              [&>p>code]:before:hidden [&>p>code]:after:hidden [&>p>code]:text-sm">
-                    <ReactMarkdown
-                        components={{
-                            code({ node, className, children, ...props }) { 
-                                const match = /language-(\w+)/.exec(className || '');
-                                const language = match ? match[1] : '';
-                                
-                                if (language) {
-                                    return (
-                                        <SyntaxHighlighter
-                                            style={oneDark}
-                                            language={language}
-                                            PreTag="div"
-                                            customStyle={{
-                                                margin: '0.5rem 0',
-                                                borderRadius: '0.375rem'
-                                            }}
-                                            {...props}
-                                        >
-                                            {String(children).replace(/\n$/, '')}
-                                        </SyntaxHighlighter>
-                                    );
-                                }
-                                return <code className={className} {...props}>{children}</code>;
-                            }
-                        }}
-                    >
+            <div className={MARKDOWN_STYLES.base}>
+                <div className={`${MARKDOWN_STYLES.typography} ${MARKDOWN_STYLES.code} ${MARKDOWN_STYLES.layout}`}>
+                    <ReactMarkdown components={{ code: CodeBlock }}>
                         {block.content}
                     </ReactMarkdown>
                 </div>
@@ -65,51 +116,50 @@ function ContentBlock({ block, steps }: ContentBlockProps) {
         if (!step) return null;
 
         const [showDetails, setShowDetails] = useState(false);
+        const [contentHeight, setContentHeight] = useState(0);
+        const contentRef = useRef<HTMLDivElement>(null);
+
+        useEffect(() => {
+            if (contentRef.current) {
+                setContentHeight(contentRef.current.scrollHeight);
+            }
+        }, [step.details, showDetails]);
+
         return (
-            <div className="flex flex-col my-2 px-4 py-1 border bg-white border-zinc-200 rounded-md transition-all duration-300 text-sm">
+            <div className="flex flex-col my-2 px-4 py-1 border bg-white border-zinc-200 rounded-md text-sm w-full">
                 <div
-                    className="flex items-center gap-3 py-1 "
+                    className="flex items-center gap-3 py-1 cursor-pointer"
                     onClick={() => setShowDetails(!showDetails)}
                 >
                     <StepStatus status={step.status} />
                     <span className="flex-1">{step.content}</span>
-                    {step.details && <ChevronDownIcon className={cn("h-4 w-4 text-zinc-500 transition-transform", showDetails && "rotate-180")} />}
+                    {step.details && (
+                        <ChevronDownIcon 
+                            className={cn(
+                                "h-4 w-4 text-zinc-500 transition-transform duration-300",
+                                showDetails && "rotate-180"
+                            )}
+                        />
+                    )}
                 </div>
-                {showDetails && step.details && (
-                    <div className="max-w-none text-zinc-600 bg-zinc-50 rounded-md [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 ml-6">
-                        <ReactMarkdown
-                            components={{
-                                code({ node, className, children, ...props }) {
-                                    const match = /language-(\w+)/.exec(className || '');
-                                    const language = match ? match[1] : '';
-
-                                    if (language) {
-                                    return (
-                                        <SyntaxHighlighter
-                                            style={oneDark}
-                                            language={language}
-                                            PreTag="div"
-                                            customStyle={{
-                                                maxWidth: '678px',
-                                                borderRadius: '0.375rem',
-                                                overflow: 'auto',
-                                                scrollbarWidth: 'thin',
-                                                scrollbarColor: 'gray transparent'
-                                            }}
-                                            {...props}
-                                        >
-                                            {String(children).replace(/\n$/, '')}
-                                        </SyntaxHighlighter>
-                                    );
-                                }
-                                return <code className={className} {...props}>{children}</code>;
-                            }
-                        }}
-                    >
-                        {step.details}
-                    </ReactMarkdown>
+                
+                <div 
+                    className={cn(
+                        "overflow-hidden transition-[height] duration-300 ease-in-out",
+                        !showDetails && "height-0"
+                    )}
+                    style={{ height: showDetails ? contentHeight : 0 }}
+                >
+                    <div ref={contentRef}>
+                        {step.details && (
+                            <StepContent 
+                                step={step}
+                                showDetails={showDetails}
+                                contentRef={contentRef as React.RefObject<HTMLDivElement>}
+                            />
+                        )}
                     </div>
-                )}
+                </div>
             </div>
         );
     }
@@ -117,27 +167,44 @@ function ContentBlock({ block, steps }: ContentBlockProps) {
     return null;
 }
 
-function StepStatus({ status }: { status: Step['status'] }) {
-    switch (status) {
-        case 'running':
-            return <Loader2 className="h-5 w-5 animate-spin text-blue-500" />;
-        case 'completed':
-            return <CheckCircleIcon className="h-5 w-5 text-green-500" />;
-        case 'failed':
-            return <XCircle className="h-5 w-5 text-red-500" />;
-        case 'skipped':
-            return <SkipForward className="h-5 w-5 text-zinc-500" />;
-        case 'pending':
-        default:
-            return <div className="h-5 w-5 rounded-full border-2 border-zinc-300" />;
-    }
+const ScrollToBottom = () => {
+    const scrollRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (scrollRef.current) {
+            scrollRef.current.scrollIntoView({ behavior: 'instant' });
+        }
+    });
+
+    return <div ref={scrollRef} />;
+};
+
+interface ChatMessageListProps {
+    messages: ChatMessageType[];
+    isLoading?: boolean;
+}
+
+export function ChatMessageList({ messages, isLoading = false }: ChatMessageListProps) {
+    return (
+        <div className="flex flex-col min-h-0 h-full">
+            {isLoading ? (
+                <LoadingSpinner />
+            ) : (
+                <div className="flex-1 overflow-y-auto">
+                    {messages.map((message, index) => (
+                        <ChatMessage key={index} message={message} />
+                    ))}
+                </div>
+            )}
+        </div>
+    );
 }
 
 export function ChatMessage({ message }: { message: ChatMessageType }) {
     return (
         <div className={cn(
-            "flex gap-4",
-            message.role === "assistant" && "bg-zinc-50 p-4 rounded-lg"
+            "flex gap-4 p-4",
+            message.role === "assistant" && "bg-zinc-50 rounded-lg"
         )}>
             {message.role === "user" && (
                 <div className="w-8 h-8 rounded-full bg-zinc-200 flex items-center justify-center flex-shrink-0">
@@ -150,10 +217,10 @@ export function ChatMessage({ message }: { message: ChatMessageType }) {
                         {message.role === "user" ? "You" : "Assistant"}
                     </p>
                     {message.status === "loading" && (
-                        <Loader2 className="h-4 w-4 animate-spin text-zinc-500" />
+                        <ArrowPathIcon className="h-4 w-4 animate-spin text-zinc-500" />
                     )}
                     {message.status === "failed" && (
-                        <XCircle className="h-4 w-4 text-red-500" />
+                        <XCircleIcon className="h-4 w-4 text-red-500" />
                     )}
                 </div>
                 <div className="mt-1 space-y-2">
@@ -165,6 +232,7 @@ export function ChatMessage({ message }: { message: ChatMessageType }) {
                         />
                     ))}
                 </div>
+                <ScrollToBottom />
             </div>
         </div>
     );

@@ -10,9 +10,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 <main className="flex flex-col flex-1 min-h-0 bg-white shadow-[0_-4px_16px_-6px_rgba(0,0,0,0.1)] rounded-tl-2xl overflow-y-auto mt-2">
                 <Header />
                     <div className="flex-1 ">
-                        <div className="w-full min-h-full">
-                            {children}
-                        </div>
+                        {children}
                     </div>
                 </main>
             </div>

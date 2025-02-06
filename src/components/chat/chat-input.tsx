@@ -1,9 +1,8 @@
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { ArrowRightIcon } from "@heroicons/react/24/solid"
 import { useEffect, useRef } from "react"
 import { useOS } from "@/hooks/use-os"
-import { Loader2 } from "lucide-react"
+import { ArrowUpIcon, ArrowPathIcon } from "@heroicons/react/24/outline"
 
 interface ChatInputProps {
     prompt: string
@@ -52,9 +51,9 @@ export function ChatInput({ prompt, hasStarted, onPromptChange, onSubmit, isLoad
                     disabled={isLoading}
                 >
                     {isLoading ? (
-                        <Loader2 className="h-5 w-5 animate-spin" />
+                        <ArrowPathIcon className="h-5 w-5 animate-spin" />
                     ) : (
-                        <ArrowRightIcon className="h-5 w-5" />
+                        <ArrowUpIcon className="h-5 w-5" />
                     )}
                 </Button>
                 <span className="text-xs text-zinc-500">{shortcutHint}</span>
