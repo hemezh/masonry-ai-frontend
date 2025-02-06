@@ -1,49 +1,125 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { ArrowLeftIcon, ArrowUpRightIcon, PlayIcon, ShareIcon, UserPlusIcon } from '@heroicons/react/24/outline';
-import Link from 'next/link';
 import { ChatMessage } from '@/components/chat/message';
 import { ChatInput } from '@/components/chat/chat-input';
 import { ChatMessage as ChatMessageType, Chat as ChatType } from '@/types/chat-api';
 import { useChat } from '@/hooks/use-chat';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
-import { ArrowUpOnSquareIcon } from '@heroicons/react/24/outline';
+import ReactFlow, { 
+  Node, 
+  Edge,
+  Background,
+  Controls,
+  ConnectionMode,
+  MiniMap,
+  BackgroundVariant,
+  ReactFlowProvider
+} from 'reactflow';
+import 'reactflow/dist/style.css';
+import { useWorkflow } from '@/hooks/use-workflow';
+import { WorkflowNode } from '@/components/workflow/workflow-node';
+import { Workflow } from '@/types/workflow-api';
 
+// Node styles for the minimap
+const nodeStyles = {
+  start: { color: '#10b981' },
+  end: { color: '#ef4444' },
+  task: { color: '#3b82f6' },
+  parallel: { color: '#f97316' },
+  condition: { color: '#8b5cf6' }
+};
+
+function WorkflowView({ nodes, edges }: { nodes: Node[]; edges: Edge[] }) {
+   
+    return (
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        connectionMode={ConnectionMode.Strict}
+        fitView
+        fitViewOptions={{ 
+          padding: 0.2,
+          includeHiddenNodes: true
+        }}
+        defaultEdgeOptions={{
+          type: 'workflow-edge',
+          animated: false
+        }}
+        className="bg-zinc-50"
+        minZoom={1.5}
+        maxZoom={1.5}
+        nodesDraggable={false}
+        nodesConnectable={false}
+      >
+        <Background
+          variant={BackgroundVariant.Dots}
+          gap={16}
+          size={1}
+          className='bg-zinc-50'
+          color='--var(--tw-gradient-stops)'
+        />
+        <Controls 
+          className="bg-white/80 backdrop-blur-sm border border-zinc-200"
+          showInteractive={false}
+        />
+        <MiniMap
+          className="!bg-white/80 !border-zinc-200"
+          nodeColor={(node) => {
+            const type = node.data.type as keyof typeof nodeStyles;
+            return nodeStyles[type]?.color || '#94a3b8';
+          }}
+          maskColor="rgb(241 245 249 / 0.8)"
+          nodeStrokeWidth={3}
+        />
+      </ReactFlow>
+    );
+}
+  
 export default function WorkflowChatPage() {
-    const params = useParams();
-    const chatId = params?.id as string;
-    const searchParams = useSearchParams();
-    const router = useRouter();
-    const [prompt, setPrompt] = useState('');
-    const [chat, setChat] = useState<ChatType | null>(null);
-    const [messages, setMessages] = useState<ChatMessageType[]>([]);
-    const messagesEndRef = useRef<HTMLDivElement>(null);
-    const [isInitialLoad, setIsInitialLoad] = useState(true);
-    const [initialPrompt, setInitialPrompt] = useState('');
-    const [hasHandledInitialPrompt, setHasHandledInitialPrompt] = useState(false);
-    
-    const {
-        isLoading,
-        sendMessage,
-        getChat
-    } = useChat({
-        onError: (error) => {
-            // Update last message to show error
-            setMessages(prev => {
-                const updated = [...prev];
-                const lastMessage = updated[updated.length - 1];
-                updated[updated.length - 1] = {
-                    ...lastMessage,
-                    blocks: [{ type: 'text', content: error.message }],
-                    steps: {},
-                    status: "failed"
-                };
-                return updated;
-            });
-        }
-    });
+  const params = useParams();
+  const chatId = params?.id as string;
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const [prompt, setPrompt] = useState('');
+  const [chat, setChat] = useState<ChatType | null>(null);
+  const [messages, setMessages] = useState<ChatMessageType[]>([]);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [initialPrompt, setInitialPrompt] = useState('');
+  const [hasHandledInitialPrompt, setHasHandledInitialPrompt] = useState(false);
+  const [workflow, setWorkflow] = useState<Workflow | null>(null);
+  const [nodes, setNodes] = useState<Node[]>([]);
+  const [edges, setEdges] = useState<Edge[]>([]);
+
+  const {
+    isLoading: isChatLoading,
+    sendMessage,
+    getChat
+  } = useChat({
+    onError: (error) => {
+      setMessages(prev => {
+        const updated = [...prev];
+        const lastMessage = updated[updated.length - 1];
+        updated[updated.length - 1] = {
+          ...lastMessage,
+          blocks: [{ type: 'text', content: error.message }],
+          steps: {},
+          status: "failed"
+        };
+        return updated;
+      });
+    }
+  });
+
+  const {
+    isLoading: isWorkflowLoading,
+    getWorkflow
+  } = useWorkflow({
+    onError: (error) => {
+      console.error('Failed to load workflow:', error);
+    }
+  });
 
     // Scroll to bottom only when messages change
     useEffect(() => {
@@ -52,7 +128,7 @@ export default function WorkflowChatPage() {
         }
     }, [messages]);
 
-    // Load existing chat only once on initial mount
+    // Modify loadWorkflow to use the new hook
     useEffect(() => {
         const loadWorkflow = async () => {
             if (!isInitialLoad) return;
@@ -60,6 +136,15 @@ export default function WorkflowChatPage() {
             try {
                 const chat = await getChat(chatId);
                 setChat(chat);
+                
+                // Fetch workflow data using the new hook
+                const { workflow, nodes, edges } = await getWorkflow(chatId);
+                if (workflow) {
+                setWorkflow(workflow);
+                setNodes(nodes);
+                setEdges(edges);
+                }
+
                 if (chat && chat.messages && chat.messages.length > 0) {
                     chat.messages = chat.messages.map(message => {
                         if (!message.blocks || message.blocks.length === 0) {
@@ -92,7 +177,7 @@ export default function WorkflowChatPage() {
         if (chatId) {
             loadWorkflow();
         }
-    }, [chatId, getChat, isInitialLoad]);
+    }, [chatId, getChat, getWorkflow, isInitialLoad]);
 
     useEffect(() => {
         if (initialPrompt && !hasHandledInitialPrompt && !isInitialLoad) {
@@ -148,29 +233,41 @@ export default function WorkflowChatPage() {
         setPrompt('');
     };
 
-    return (
-        <div className="flex flex-col">
-            <div className="flex-1 flex flex-col max-w-3xl mx-auto w-full min-h-[calc(100vh-4rem)]">
-                <div className="flex-1 flex flex-col justify-end">
-                    <div className="overflow-y-auto">
-                        <div className="space-y-6">
-                            {messages.map((message, index) => (
-                                <ChatMessage key={index} message={message} />
-                            ))}
-                            <div ref={messagesEndRef} />
-                        </div>
-                    </div>
-                    <div className="sticky bottom-0 bg-white py-4">
-                        <ChatInput
-                            prompt={prompt}
-                            hasStarted={true}
-                            onPromptChange={setPrompt}
-                            onSubmit={handleSubmit}
-                            isLoading={isLoading}
-                        />
-                    </div>
-                </div>
+  return (
+    <div className="flex h-screen">
+      <div className="flex flex-row mx-auto w-full">
+        {/* Chat section */}
+        <div className="flex-1 flex flex-col max-w-2xl mx-4">
+          <div className="flex-1 flex flex-col justify-end">
+            <div className="overflow-y-auto">
+              <div className="space-y-6">
+                {messages.map((message, index) => (
+                  <ChatMessage key={index} message={message} />
+                ))}
+                <div ref={messagesEndRef} />
+              </div>
             </div>
+            <div className="sticky bottom-0 bg-white py-4">
+              <ChatInput
+                prompt={prompt}
+                hasStarted={true}
+                onPromptChange={setPrompt}
+                onSubmit={handleSubmit}
+                isLoading={isChatLoading}
+              />
+            </div>
+          </div>
         </div>
-    );
-}
+
+        {/* Workflow section */}
+        <div className="flex-1 w-full bg-white">
+          <ReactFlowProvider>
+            <div className="h-full">
+              <WorkflowView nodes={nodes} edges={edges} />
+            </div>
+          </ReactFlowProvider>
+        </div>
+      </div>
+    </div>
+  );
+}   

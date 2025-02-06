@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ChevronUpIcon } from '@heroicons/react/24/solid';
 import { usePathname } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
 
 const navigation = [
     { name: 'Home', href: '/dashboard', icon: HomeIcon },
@@ -30,7 +32,7 @@ const workspaces = [
 export default function Sidebar() {
     const pathname = usePathname();
     const [currentWorkspace, setCurrentWorkspace] = useState(workspaces[0]);
-
+    const router = useRouter();
     return (
         <div className="hidden md:flex max-h-screen">
             <div className="w-64">
@@ -75,7 +77,15 @@ export default function Sidebar() {
                             </DropdownMenu>
                         </div>
                         {/* Navigation */}
-                        <nav className="mt-8 space-y-2 px-4">
+                        <nav className="mt-8 space-y-1 px-4">
+                            <div className="flex items-center justify-between mb-4">
+                                <Button variant="default" size="sm" onClick={() => {
+                                    router.push('/dashboard/workflows/new');
+                                }}>
+                                    <PlusIcon className="h-4 w-4" />
+                                    <span>New Workflow</span>
+                                </Button>
+                            </div>
                             {navigation.map((item) => {
                                 const isActive = pathname === item.href;
                                 return (

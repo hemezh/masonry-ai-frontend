@@ -21,12 +21,12 @@ class ChatService {
     }
 
     async createChat(data: CreateChatRequest): Promise<Chat> {
-        const response = await apiClient.post<ChatResponse>('/chats', data);
+        const response = await apiClient.post<ChatResponse>('/chats/', data);
         return response.data.data;
     }
 
     async listChats(page: number = 1, limit: number = 10): Promise<ChatsListResponse> {
-        const response = await apiClient.get<ChatsListResponse>('/chats', {
+        const response = await apiClient.get<ChatsListResponse>('/chats/', {
             params: { page, limit }
         });
         return response.data;
