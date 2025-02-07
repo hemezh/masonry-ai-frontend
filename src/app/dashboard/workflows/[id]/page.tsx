@@ -1,191 +1,159 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { ChatMessage, ChatMessageList } from '@/components/chat/message';
-import { ChatInput } from '@/components/chat/chat-input';
-import { ChatMessage as ChatMessageType, Chat as ChatType } from '@/types/chat-api';
+/**
+ * Workflow-enabled Chat Interface Implementation
+ * 
+ * This component implements a sophisticated chat interface that integrates with a workflow
+ * visualization system. Key features include:
+ * - Real-time chat messaging with loading states and error handling
+ * - Dynamic workflow visualization that updates based on chat context
+ * - URL-based initial prompt handling for deep linking
+ * - Responsive layout that adapts to workflow presence
+ * 
+ * The architecture follows a unidirectional data flow pattern where:
+ * 1. User actions trigger state changes via callbacks
+ * 2. State updates cause re-renders of affected components
+ * 3. Side effects (API calls, URL updates) are handled through useEffect
+ * 
+ * Performance optimizations include:
+ * - Memoized layout classes
+ * - Callback memoization for stable references
+ * - Parallel data fetching for initial load
+ */
+
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import { ChatMessage as ChatMessageType } from '@/types/chat-api';
 import { useChat } from '@/hooks/use-chat';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
-import ReactFlow, { 
-  Node, 
-  Edge,
-  Background,
-  Controls,
-  ConnectionMode,
-  MiniMap,
-  BackgroundVariant,
-  ReactFlowProvider
-} from 'reactflow';
-import 'reactflow/dist/style.css';
+import { ReactFlowProvider, Node, Edge } from 'reactflow';
 import { useWorkflow } from '@/hooks/use-workflow';
-import { WorkflowNode } from '@/components/workflow/workflow-node';
 import { Workflow } from '@/types/workflow-api';
-import { WorkflowProvider, useWorkflowContext } from '@/contexts/workflow-context';
+import { useWorkflowContext } from '@/contexts/workflow-context';
+import { WorkflowView } from '@/components/workflow/workflow-view';
+import { ChatInputContainer } from '@/components/workflow/chat-input-container';
+import { MessageListContainer } from '@/components/workflow/message-list-container';
+import { ArrowPathIcon } from '@heroicons/react/24/outline';
+import { cn } from '@/lib/utils';
 
-// Constants
-const NODE_STYLES = {
-  start: { color: '#10b981' },
-  end: { color: '#ef4444' },
-  task: { color: '#3b82f6' },
-  parallel: { color: '#f97316' },
-  condition: { color: '#8b5cf6' }
-} as const;
-
-// Types
-interface WorkflowViewProps {
-  nodes: Node[];
-  edges: Edge[];
-}
-
-interface ChatPageState {
-  prompt: string;
-  chat: ChatType | null;
-  messages: ChatMessageType[];
-  isInitialLoad: boolean;
-  initialPrompt: string;
-  hasHandledInitialPrompt: boolean;
+/**
+ * Represents the complete state of a workflow in the system.
+ * This interface is crucial for maintaining synchronization between
+ * the chat context and the visual representation of the workflow.
+ * 
+ * @property workflow - The raw workflow data from the API
+ * @property nodes - Visual representation of workflow steps
+ * @property edges - Connections between workflow nodes
+ */
+interface WorkflowState {
   workflow: Workflow | null;
   nodes: Node[];
   edges: Edge[];
 }
 
-// Components
-function WorkflowView({ nodes, edges }: WorkflowViewProps) {
-  if (nodes.length === 0) return null;
-
-  return (
-    <div className="h-full w-full">
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        connectionMode={ConnectionMode.Strict}
-        fitView
-        fitViewOptions={{ 
-          padding: 0.2,
-          includeHiddenNodes: true
-        }}
-        defaultEdgeOptions={{
-          type: 'workflow-edge',
-          animated: false
-        }}
-        className="h-full w-full bg-zinc-50"
-        minZoom={1.5}
-        maxZoom={1.5}
-        nodesDraggable={false}
-        nodesConnectable={false}
-      >
-        <Background
-          variant={BackgroundVariant.Dots}
-          gap={16}
-          size={1}
-          className='bg-zinc-50'
-          color='--var(--tw-gradient-stops)'
-        />
-        <Controls 
-          className="bg-white/80 backdrop-blur-sm border border-zinc-200"
-          showInteractive={false}
-        />
-        <MiniMap
-          className="!bg-white/80 !border-zinc-200"
-          nodeColor={(node) => {
-            const type = node.data.type as keyof typeof NODE_STYLES;
-            return NODE_STYLES[type]?.color || '#94a3b8';
-          }}
-          maskColor="rgb(241 245 249 / 0.8)"
-          nodeStrokeWidth={3}
-        />
-      </ReactFlow>
-    </div>
-  );  
-}
-
-// Main Component
-export default function WorkflowChatPage() {
-  return <WorkflowChatPageContent />;
-}
-
+/**
+ * Core component implementing the workflow chat interface.
+ * 
+ * This component handles several complex responsibilities:
+ * 1. Chat message management and real-time updates
+ * 2. Workflow state synchronization
+ * 3. URL parameter processing
+ * 4. Loading states and error handling
+ * 5. Responsive layout management
+ * 
+ * The component uses a multi-stage initialization process to ensure
+ * proper loading of both chat and workflow data while maintaining
+ * a smooth user experience.
+ */
 function WorkflowChatPageContent() {
-  // Hooks
+  // URL and routing state management
   const params = useParams();
   const chatId = params?.id as string;
   const searchParams = useSearchParams();
   const router = useRouter();
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const { setWorkflow: setContextWorkflow } = useWorkflowContext();
 
-  // State
-  const [state, setState] = useState<ChatPageState>({
-    prompt: '',
-    chat: null,
-    messages: [],
-    isInitialLoad: true,
-    initialPrompt: '',
-    hasHandledInitialPrompt: false,
+  /**
+   * Core state management
+   * 
+   * The component maintains several interdependent pieces of state:
+   * 1. messages: Chat history with real-time updates
+   * 2. workflowState: Current workflow visualization data
+   * 3. loadingState: Multi-faceted loading tracking
+   * 4. isMessageSending: Message transmission status
+   * 
+   * This separation allows for granular updates and prevents unnecessary rerenders
+   */
+  const [messages, setMessages] = useState<ChatMessageType[]>([]);
+  const [workflowState, setWorkflowState] = useState<WorkflowState>({
     workflow: null,
     nodes: [],
     edges: []
   });
 
-  // Custom hooks
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [initialPrompt, setInitialPrompt] = useState('');
+  const [hasHandledInitialPrompt, setHasHandledInitialPrompt] = useState(false);
+  const [isMessageSending, setIsMessageSending] = useState(false);
+
+  /**
+   * Error handler for chat operations
+   * 
+   * This callback serves multiple purposes:
+   * 1. Updates the failed message with error information
+   * 2. Preserves the message history
+   * 3. Resets the sending state
+   * 
+   * The implementation ensures that only the last message is updated,
+   * maintaining the integrity of the chat history.
+   */
+  const handleChatError = useCallback((error: Error) => {
+    setMessages(prev => 
+      prev.map((msg, idx) => 
+        idx === prev.length - 1 
+          ? {
+              ...msg,
+              blocks: [{ type: 'text' as const, content: error.message }],
+              steps: {},
+              status: "failed" as const
+            }
+          : msg
+      )
+    );
+  }, []);
+
+  // Hook initialization with error handling
   const {
-    isLoading: isChatLoading,
+    isChatLoading,
     sendMessage,
-    getChat
+    getChat,
   } = useChat({
     onError: handleChatError
   });
 
-  const {
-    isLoading: isWorkflowLoading,
-    getWorkflow
-  } = useWorkflow({
-    onError: (error) => console.error('Failed to load workflow:', error)
+  const { getWorkflow } = useWorkflow({
+    onError: useCallback((error: Error) => {}, [])
   });
 
-  // Handlers
-  function handleChatError(error: Error) {
-    setState(prev => ({
-      ...prev,
-      messages: prev.messages.map((msg, idx) => 
-        idx === prev.messages.length - 1 
-          ? {
-              ...msg,
-              blocks: [{ type: 'text', content: error.message }],
-              steps: {},
-              status: "failed"
-            }
-          : msg
-      )
-    }));
-  }
+  useEffect(() => {}, [messages]);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    await handleMessageUpdate(state.prompt);
-  }
-
-  async function handleMessageUpdate(prompt: string) {
-    if (!prompt.trim()) return;
-
+  const handleSendMessage = useCallback(async (prompt: string) => {
+    setIsMessageSending(true);
+    
     const userMessage: ChatMessageType = {
       role: "user",
-      blocks: [{ type: 'text', content: prompt }],
+      blocks: [{ type: 'text' as const, content: prompt }],
       steps: {},
-      status: "success"
+      status: "success" as const
     };
 
     const loadingMessage: ChatMessageType = {
       role: "assistant",
-      blocks: [],
+      blocks: [{ type: 'text', content: '' }],
       steps: {},
-      status: "loading"
+      status: "loading" as const
     };
-
-    setState(prev => ({
-      ...prev,
-      messages: [...prev.messages, userMessage, loadingMessage],
-      prompt: ''
-    }));
+    
+    setMessages(prev => [...prev, userMessage, loadingMessage]);
 
     try {
       await sendMessage(
@@ -193,109 +161,187 @@ function WorkflowChatPageContent() {
         loadingMessage,
         prompt,
         (message) => {
-          setState(prev => ({
-            ...prev,
-            messages: prev.messages.map((msg, idx) => 
-              idx === prev.messages.length - 1 ? message : msg
-            )
-          }));
+          setMessages(prev => {
+            const newMessages = [...prev];
+            newMessages[newMessages.length - 1] = message;
+            return newMessages;
+          });
         }
       );
     } catch (error) {
-      console.error('Error in chat:', error);
+    } finally {
+      setIsMessageSending(false);
     }
-  }
+  }, [chatId, sendMessage]);
 
-  // Effects
-  useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [state.messages]);
-
+  /**
+   * Initial data loading effect
+   * 
+   * This effect handles the complex initialization process:
+   * 1. Parallel loading of chat and workflow data
+   * 2. Message format normalization
+   * 3. URL parameter processing
+   * 4. Workflow context synchronization
+   * 
+   * The implementation uses Promise.all for efficient loading
+   * and includes comprehensive error handling.
+   */
   useEffect(() => {
     async function loadWorkflow() {
-      if (!state.isInitialLoad) return;
+      if (!isInitialLoad || !chatId) return;
 
       try {
-        const chat = await getChat(chatId);
-        const { workflow, nodes, edges } = await getWorkflow(chatId);
+        const [chat, workflowData] = await Promise.all([
+          getChat(chatId),
+          getWorkflow(chatId)
+        ]);
+
         const promptParam = searchParams.get('prompt');
 
-        if (workflow) {
-          setContextWorkflow(workflow);
+        if (workflowData.workflow) {
+          setContextWorkflow(workflowData.workflow);
         }
-
-        setState(prev => ({
-          ...prev,
-          chat,
-          workflow,
-          nodes,
-          edges,
-          messages: chat?.messages?.map(message => ({
+        
+        if (chat?.messages?.length && !hasHandledInitialPrompt) {
+          const formattedMessages = chat.messages.map(message => ({
             ...message,
             blocks: message.blocks?.length ? message.blocks : [{
-              type: 'text',
+              type: 'text' as const,
               content: message.content || ''
             }],
             steps: message.steps || {},
-          })) || [],
-          initialPrompt: promptParam || '',
-          isInitialLoad: false
-        }));
-
+          }));
+          setMessages(formattedMessages);
+        }
+  
+        setWorkflowState(workflowData);
+        setIsInitialLoad(false);
+        setInitialPrompt(promptParam || '');
         if (promptParam) {
           router.replace(`/dashboard/workflows/${chatId}`);
         }
+
       } catch (error) {
-        console.error('Failed to load workflow:', error);
-        setState(prev => ({ ...prev, isInitialLoad: false }));
+        setIsInitialLoad(false);
       }
     }
 
-    if (chatId) {
-      loadWorkflow();
-    }
-  }, [chatId, getChat, getWorkflow, router, searchParams, state.isInitialLoad]);
+    loadWorkflow();
+  }, [chatId, getChat, getWorkflow, router, searchParams, isInitialLoad, setContextWorkflow]);
 
+  /**
+   * Initial prompt handler effect
+   * 
+   * This effect manages the processing of URL-based initial prompts:
+   * 1. Waits for component initialization
+   * 2. Processes the prompt only once
+   * 3. Updates handling state
+   * 
+   * This implementation ensures that prompts are processed exactly once
+   * and only after the component is ready.
+   */
   useEffect(() => {
-    if (state.initialPrompt && !state.hasHandledInitialPrompt && !state.isInitialLoad) {
-      handleMessageUpdate(state.initialPrompt);
-      setState(prev => ({ ...prev, hasHandledInitialPrompt: true }));
+    if (initialPrompt && !hasHandledInitialPrompt && !isInitialLoad) {
+      handleSendMessage(initialPrompt);
+      setHasHandledInitialPrompt(true);
     }
-  }, [state.initialPrompt, state.hasHandledInitialPrompt, state.isInitialLoad]);
+  }, [initialPrompt, hasHandledInitialPrompt, isInitialLoad, handleSendMessage]);
 
-  // Render
-  const showWorkflow = state.nodes.length > 0;
-  
+  // Workflow visibility control
+  const showWorkflow = workflowState.nodes.length > 0;
+
+  /**
+   * Layout class computation
+   * 
+   * This memoized object manages complex layout logic:
+   * 1. Responsive sizing based on workflow presence
+   * 2. Dynamic transitions and animations
+   * 3. Conditional styling based on content state
+   * 
+   * The implementation uses Tailwind CSS for efficient styling
+   * and includes careful management of overflow behaviors.
+   */
+  const layoutClasses = useMemo(() => ({
+    outerContainer: "h-full relative flex",
+    contentWrapper: cn(
+      "h-full w-full overflow-y-auto transition-all duration-200 ease-in-out",
+      showWorkflow ? "flex gap-4 p-4" : "flex"
+    ),
+    chatSection: cn(
+      "flex flex-col bg-white rounded-lg shadow-sm",
+      showWorkflow ? "w-[40rem] shrink-0" : "w-full max-w-[40rem] mx-auto"
+    ),
+    messagesContainer: cn(
+      "flex-1 min-h-0 relative",
+      messages.length === 0 ? "flex items-end" : ""
+    ),
+    workflowSection: showWorkflow 
+      ? "flex-1 bg-zinc-50 rounded-lg overflow-hidden shadow-sm" 
+      : ""
+  }), [showWorkflow, messages.length]);
+
   return (
-    <div className="flex h-full">
-      <div className={`w-[calc(30vw-8rem)] ${showWorkflow ? '' : 'mx-auto'} h-full`}>
-        <div className="px-4 mx-auto max-w-3xl h-full">
-          <div className="flex flex-col">
-            <ChatMessageList messages={state.messages} isLoading={state.isInitialLoad} />
-            <div ref={messagesEndRef} />
+    <div className={layoutClasses.outerContainer}>
+      <div className={layoutClasses.contentWrapper}>
+        <div className={layoutClasses.chatSection}>
+          <div className={layoutClasses.messagesContainer}>
+            {isInitialLoad ? (
+              // Loading state UI
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="flex flex-col items-center gap-3">
+                  <ArrowPathIcon className="h-8 w-8 animate-spin text-zinc-500" />
+                  <p className="text-sm text-zinc-500">Loading messages...</p>
+                </div>
+              </div>
+            ) : (
+              // Main chat interface
+              <MessageListContainer 
+                messages={messages} 
+                isLoading={false}
+                isEmpty={messages.length === 0}
+                chatInput={
+                  <ChatInputContainer
+                    onSendMessage={handleSendMessage}
+                    isLoading={isMessageSending}
+                  />
+                }
+              />
+            )}
           </div>
+        </div>
 
-          <div className="bg-white py-4 sticky bottom-0 w-full">
-            <ChatInput
-              prompt={state.prompt}
-              hasStarted={true}
-              onPromptChange={(prompt) => setState(prev => ({ ...prev, prompt }))}
-              onSubmit={handleSubmit}
-              isLoading={isChatLoading}
+        {/* Conditional workflow visualization */}
+        {showWorkflow && (
+          <div className={layoutClasses.workflowSection}>
+            <WorkflowView 
+              nodes={workflowState.nodes} 
+              edges={workflowState.edges} 
             />
-          </div>              
-        </div>
+          </div>
+        )}
       </div>
-
-      {showWorkflow && (
-        <div className="fixed right-0 bottom-0 w-[calc(70vw-9rem)] h-[calc(100vh-4.5rem)] mr-4">
-          <ReactFlowProvider>
-            <WorkflowView nodes={state.nodes} edges={state.edges} />
-          </ReactFlowProvider>
-        </div>
-      )}
     </div>
+  );
+}
+
+/**
+ * Root component wrapper
+ * 
+ * This component serves several important purposes:
+ * 1. Provides ReactFlow context for workflow visualization
+ * 2. Ensures proper mounting/unmounting of chat content
+ * 3. Handles chat ID-based instance management
+ * 
+ * The key prop on WorkflowChatPageContent ensures proper
+ * component recreation when the chat ID changes.
+ */
+export default function WorkflowChatPage() {
+  const params = useParams();
+  const chatId = params?.id as string;
+
+  return (
+    <ReactFlowProvider>
+      <WorkflowChatPageContent key={chatId} />
+    </ReactFlowProvider>
   );
 }

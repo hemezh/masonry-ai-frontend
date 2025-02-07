@@ -19,7 +19,6 @@ export default function Header() {
     const isWorkflowDetailPage = pathname?.match(/^\/dashboard\/workflows\/[^/]+$/);
     const isNewWorkflowPage = pathname === '/dashboard/workflows/new';
     const { workflow } = useWorkflowContext();
-    console.log(isWorkflowDetailPage, isNewWorkflowPage);
 
     // Don't render header on dashboard home
     if (isNewWorkflowPage || !isWorkflowDetailPage) {

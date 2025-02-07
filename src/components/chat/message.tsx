@@ -190,7 +190,7 @@ export function ChatMessageList({ messages, isLoading = false }: ChatMessageList
             {isLoading ? (
                 <LoadingSpinner />
             ) : (
-                <div className="flex-1 overflow-y-auto">
+                <div className="flex-1">
                     {messages.map((message, index) => (
                         <ChatMessage key={index} message={message} />
                     ))}
@@ -203,7 +203,7 @@ export function ChatMessageList({ messages, isLoading = false }: ChatMessageList
 export function ChatMessage({ message }: { message: ChatMessageType }) {
     return (
         <div className={cn(
-            "flex gap-4 p-4",
+            "flex gap-4 p-4 w-full",
             message.role === "assistant" && "bg-zinc-50 rounded-lg"
         )}>
             {message.role === "user" && (

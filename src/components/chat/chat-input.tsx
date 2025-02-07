@@ -5,12 +5,13 @@ import { useOS } from "@/hooks/use-os"
 import { ArrowUpIcon, ArrowPathIcon } from "@heroicons/react/24/outline"
 
 interface ChatInputProps {
-    prompt: string
-    hasStarted: boolean
-    onPromptChange: (value: string) => void
-    onSubmit: (e: React.FormEvent) => void
-    isLoading?: boolean
+    prompt: string;
+    hasStarted: boolean;
+    onPromptChange: (newPrompt: string) => void;
+    onSubmit: (e: React.FormEvent) => void;
+    isLoading: boolean;
 }
+  
 
 export function ChatInput({ prompt, hasStarted, onPromptChange, onSubmit, isLoading }: ChatInputProps) {
     const os = useOS()

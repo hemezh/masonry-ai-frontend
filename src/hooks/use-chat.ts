@@ -109,7 +109,7 @@ export function useChat(options: UseChatOptions = {}) {
     }, [handleError]);
 
     return {
-        isLoading,
+        isChatLoading: isLoading,
         error,
         createChat,
         listChats,

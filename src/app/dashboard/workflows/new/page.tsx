@@ -12,7 +12,7 @@ import { ChatMessage as ChatMessageType } from '@/types/chat-api';
 export default function CreateWorkflowPage() {
     const router = useRouter();
     const [prompt, setPrompt] = useState('');
-    const { isLoading, createChat } = useChat();
+    const { isChatLoading, createChat } = useChat();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -61,7 +61,7 @@ export default function CreateWorkflowPage() {
                             hasStarted={false}
                             onPromptChange={setPrompt}
                             onSubmit={handleSubmit}
-                            isLoading={isLoading}
+                            isLoading={isChatLoading}
                         />
                     </div>
                 </div>

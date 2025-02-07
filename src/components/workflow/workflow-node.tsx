@@ -1,14 +1,14 @@
 import React from 'react';
 import { Handle, Position } from 'reactflow';
-import {
-  PlayCircle,
-  StopCircle,
-  GitFork,
-  Activity,
-  Box,
-  Server
-} from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { 
+  PlayCircleIcon, 
+  StopCircleIcon, 
+  ServerIcon,
+  CircleStackIcon,
+  ArrowsPointingOutIcon,
+  Square2StackIcon
+} from '@heroicons/react/24/outline';
 
 interface WorkflowNodeData {
   id: string;
@@ -38,35 +38,35 @@ interface WorkflowNodeProps {
 
 const nodeStyles = {
   start: {
-    icon: PlayCircle,
+    icon: PlayCircleIcon,
     gradient: 'from-emerald-50 to-emerald-100',
     border: 'border-emerald-200',
     text: 'text-emerald-700',
     handle: 'border-emerald-400'
   },
   end: {
-    icon: StopCircle,
+    icon: StopCircleIcon,
     gradient: 'from-red-50 to-red-100',
     border: 'border-red-200',
     text: 'text-red-700',
     handle: 'border-red-400'
   },
   task: {
-    icon: Activity,
+    icon: CircleStackIcon,
     gradient: 'from-blue-50 to-blue-100',
     border: 'border-blue-200',
     text: 'text-blue-700',
     handle: 'border-blue-400'
   },
   parallel: {
-    icon: GitFork,
+    icon: ArrowsPointingOutIcon,
     gradient: 'from-orange-50 to-orange-100',
     border: 'border-orange-200',
     text: 'text-orange-700',
     handle: 'border-orange-400'
   },
   condition: {
-    icon: Box,
+    icon: Square2StackIcon,
     gradient: 'from-purple-50 to-purple-100',
     border: 'border-purple-200',
     text: 'text-purple-700',
@@ -108,11 +108,11 @@ export function WorkflowNode({ data, isConnectable, selected }: WorkflowNodeProp
         {data.task && (
           <div className="p-3 space-y-2">
             <div className="flex items-center gap-2 text-gray-600">
-              <Activity className="w-4 h-4" />
+              <CircleStackIcon className="w-4 h-4" />
               <span className="text-xs">{data.task.activity}</span>
             </div>
             <div className="flex items-center gap-2 text-gray-600">
-              <Server className="w-4 h-4" />
+              <ServerIcon className="w-4 h-4" />
               <span className="text-xs">{data.task.queue}</span>
             </div>
           </div>
