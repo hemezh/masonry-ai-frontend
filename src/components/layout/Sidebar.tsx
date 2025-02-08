@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { HomeIcon, CpuChipIcon, PlayIcon, PuzzlePieceIcon, Cog6ToothIcon, QuestionMarkCircleIcon, UserIcon, ArrowRightIcon, PlusIcon, ChevronUpDownIcon } from '@heroicons/react/24/outline';
+import { HomeIcon, CpuChipIcon, PlayIcon, PuzzlePieceIcon, Cog6ToothIcon, QuestionMarkCircleIcon, UserIcon, ArrowRightIcon, PlusIcon, ChevronUpDownIcon, ClipboardDocumentListIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import {
     DropdownMenu,
@@ -18,6 +18,7 @@ import { useRouter } from 'next/navigation';
 const navigation = [
     { name: 'Home', href: '/dashboard', icon: HomeIcon },
     { name: 'Workflows', href: '/dashboard/workflows', icon: CpuChipIcon },
+    { name: 'Tasks', href: '/dashboard/tasks', icon: ClipboardDocumentListIcon },
     { name: 'Runs', href: '/dashboard/runs', icon: PlayIcon },
     { name: 'Integrations', href: '/dashboard/integrations', icon: PuzzlePieceIcon },
 ];
