@@ -33,8 +33,8 @@ export default function Header() {
     return (
         <header className={cn(
             "sticky top-0 z-50 flex items-center justify-between h-14 px-6",
-            "bg-white/80 dark:bg-zinc-900/80",
-            "backdrop-blur-sm backdrop-saturate-150",
+            "bg-card/80 backdrop-blur-sm",
+            "backdrop-saturate-150",
             "border-b border-zinc-200/50 dark:border-zinc-800/50",
             "transition-colors duration-200"
         )}>
@@ -69,9 +69,9 @@ export default function Header() {
                     size="sm"
                     className={cn(
                         "text-zinc-600 dark:text-zinc-300",
-                        "bg-white dark:bg-zinc-900",
+                        "bg-card",
                         "border border-zinc-200 dark:border-zinc-800",
-                        "hover:bg-zinc-50 dark:hover:bg-zinc-800/50",
+                        "hover:bg-muted",
                         "hover:text-zinc-900 dark:hover:text-white",
                         "hover:border-zinc-300 dark:hover:border-zinc-700",
                         "transition-all duration-200"
@@ -84,10 +84,10 @@ export default function Header() {
                     variant="default"
                     size="sm"
                     className={cn(
-                        "bg-zinc-900 dark:bg-white",
+                        "bg-primary",
                         "text-white dark:text-zinc-900",
                         "border border-zinc-900 dark:border-white",
-                        "hover:bg-zinc-800 dark:hover:bg-zinc-100",
+                        "hover:bg-secondary",
                         "hover:border-zinc-800 dark:hover:border-zinc-100",
                         "transition-all duration-200",
                         "shadow-sm"

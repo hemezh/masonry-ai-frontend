@@ -56,7 +56,7 @@ const StatusIcon = ({ status }: { status: string }) => {
         case 'failed':
             return <XCircleIcon className="h-4 w-4 text-red-600" />;
         default:
-            return <ClockIcon className="h-4 w-4 text-gray-600" />;
+            return <ClockIcon className="h-4 w-4 text-muted-foreground" />;
     }
 };
 
@@ -75,20 +75,20 @@ export default function RunsPage() {
     return (
         <div className="p-8">
             <div className="mb-8">
-                <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Workflow Runs</h1>
-                <p className="text-sm text-zinc-500">Monitor and track your workflow executions</p>
+                <h1 className="text-2xl font-semibold text-foreground">Workflow Runs</h1>
+                <p className="text-sm text-muted-foreground">Monitor and track your workflow executions</p>
             </div>
 
-            <div className="bg-white rounded-lg border border-zinc-200">
+            <div className="bg-background rounded-lg border border-border">
                 {/* Filters */}
-                <div className="p-4 border-b border-zinc-200">
+                <div className="p-4 border-b border-border">
                     <div className="flex gap-4 items-center">
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="outline">
                                     <StatusIcon status={statusFilter} />
                                     Status: {statusFilter === 'all' ? 'All' : statusFilter}
-                                    <ChevronUpDownIcon className="ml-2 h-4 w-4 text-zinc-400" />
+                                    <ChevronUpDownIcon className="ml-2 h-4 w-4 text-muted-foreground" />
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent>
@@ -104,7 +104,7 @@ export default function RunsPage() {
                                 <Button variant="outline">
                                     <CogIcon className="h-5 w-5" />
                                     Workflow: {workflowFilter === 'all' ? 'All' : workflowFilter}
-                                    <ChevronUpDownIcon className="ml-2 h-4 w-4 text-zinc-400" />
+                                    <ChevronUpDownIcon className="ml-2 h-4 w-4 text-muted-foreground" />
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent>
@@ -123,29 +123,29 @@ export default function RunsPage() {
                 <div className="overflow-x-auto">
                     <table className="w-full">
                         <thead>
-                            <tr className="border-b border-zinc-200 bg-zinc-50">
-                                <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Workflow</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Run ID</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Status</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Start Time</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Current Task</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Output</th>
+                            <tr className="border-b border-border bg-muted/50">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Workflow</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Run ID</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Start Time</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Current Task</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Output</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-zinc-200">
+                        <tbody className="divide-y divide-border">
                             {filteredRuns.map((run) => (
-                                <tr key={run.id} className="hover:bg-zinc-50 transition-colors duration-150">
+                                <tr key={run.id} className="hover:bg-muted/50 transition-colors duration-150">
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="flex flex-col group">
                                             <div className="flex items-center">
-                                                <span className="text-sm font-medium text-zinc-900 group-hover:text-purple-600 cursor-pointer transition-colors">
+                                                <span className="text-sm font-medium text-foreground group-hover:text-primary cursor-pointer transition-colors">
                                                     {run.workflowName}
                                                 </span>
                                             </div>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className="text-sm text-zinc-600 font-medium">
+                                        <span className="text-sm text-muted-foreground font-medium">
                                             {run.id}
                                         </span>
                                     </td>
@@ -157,8 +157,8 @@ export default function RunsPage() {
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="flex flex-col">
-                                            <span className="text-sm text-zinc-600 flex items-center gap-1.5 hover:text-purple-600 transition-colors">
-                                                <CalendarIcon className="h-4 w-4 text-zinc-400" />
+                                            <span className="text-sm text-muted-foreground flex items-center gap-1.5 hover:text-primary transition-colors">
+                                                <CalendarIcon className="h-4 w-4 text-muted-foreground" />
 
                                                 {new Intl.DateTimeFormat('en-US', {
                                                     hour: 'numeric',
@@ -176,18 +176,19 @@ export default function RunsPage() {
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-2">
-                                            <div className={`h-2 w-2 rounded-full ${run.status === 'completed' || run.status === 'failed'
-                                                ? 'bg-zinc-400'
-                                                : 'bg-green-500 animate-pulse'
-                                                }`}></div>
-                                            <span className="text-sm text-zinc-600 font-medium">
+                                            <div className={`h-2 w-2 rounded-full ${
+                                                run.status === 'completed' || run.status === 'failed'
+                                                    ? 'bg-muted-foreground'
+                                                    : 'bg-chart-2 animate-pulse'
+                                            }`}></div>
+                                            <span className="text-sm text-muted-foreground font-medium">
                                                 {run.currentTask || 'No active task'}
                                             </span>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="max-w-md">
-                                            <p className="text-sm text-zinc-600 line-clamp-2 hover:line-clamp-none transition-all cursor-pointer bg-zinc-50 p-2 rounded-md">
+                                            <p className="text-sm text-muted-foreground line-clamp-2 hover:line-clamp-none transition-all cursor-pointer bg-muted/50 p-2 rounded-md">
                                                 {run.output || 'No output available'}
                                             </p>
                                         </div>

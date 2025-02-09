@@ -79,7 +79,7 @@ export function TaskExecuteModal({ task, isOpen, onClose, onExecuted }: TaskExec
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-[500px]">
+            <DialogContent className="sm:max-w-[500px] text-foreground">
                 <form onSubmit={handleSubmit}>
                     <DialogHeader>
                         <DialogTitle>Execute {task.name}</DialogTitle>

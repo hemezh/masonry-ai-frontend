@@ -275,16 +275,16 @@ function WorkflowChatPageContent() {
     workflowSection: showWorkflow 
       ? cn(
           "flex-1 rounded-lg overflow-hidden shadow-sm",
-          "bg-zinc-50 dark:bg-zinc-900/50",
-          "border border-zinc-100 dark:border-zinc-800"
+          "bg-muted/50",
+          "border border-border"
         )
       : "",
     loadingContainer: cn(
       "absolute inset-0 flex items-center justify-center",
-      "bg-white dark:bg-zinc-900"
+      "bg-background"
     ),
-    loadingIcon: "h-8 w-8 animate-spin text-zinc-500 dark:text-zinc-400",
-    loadingText: "text-sm text-zinc-500 dark:text-zinc-400"
+    loadingIcon: "h-8 w-8 animate-spin text-muted-foreground",
+    loadingText: "text-sm text-muted-foreground"
   }), [showWorkflow, messages.length]);
 
   return (

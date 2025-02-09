@@ -134,7 +134,7 @@ export default function DashboardPage() {
 
                     {/* Billing Toggle */}
                     <div className="flex items-center gap-4 mt-6 bg-muted p-1 rounded-lg">
-                        <button className="px-4 py-2 rounded-md bg-background text-sm font-medium shadow-sm">Monthly</button>
+                        <button className="px-4 py-2 rounded-md bg-background text-sm font-medium shadow-sm text-foreground">Monthly</button>
                         <button className="px-4 py-2 rounded-md text-sm font-medium text-muted-foreground">Annual (Save 20%)</button>
                     </div>
                 </div>

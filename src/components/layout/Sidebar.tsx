@@ -39,12 +39,12 @@ export default function Sidebar() {
     return (
         <div className="hidden md:flex max-h-screen">
             <div className="w-64">
-                <div className="flex h-full flex-col border-zinc-100/10 bg-background">
+                <div className="flex h-full flex-col border-border/10 bg-background">
                     <div className="flex flex-col overflow-y-auto overflow-x-hidden h-full">
                         <div className="flex items-center min-w-[16rem] px-4 py-4 gap-4">
                             {/* Logo */}
                             <svg
-                                className="h-8 w-8 text-zinc-900 dark:text-white"
+                                className="h-8 w-8 text-foreground"
                                 viewBox="0 0 24 24"
                                 fill="none"
                                 xmlns="http://www.w3.org/2000/svg"
@@ -57,9 +57,9 @@ export default function Sidebar() {
 
                             {/* Workspace Switcher */}
                             <DropdownMenu>
-                                <DropdownMenuTrigger className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors duration-200">
+                                <DropdownMenuTrigger className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm bg-muted text-muted-foreground hover:bg-muted/80 transition-colors">
                                     <span className="truncate">{currentWorkspace.name}</span>
-                                    <ChevronUpDownIcon className="ml-2 h-4 w-4 text-zinc-400 dark:text-zinc-500" />
+                                    <ChevronUpDownIcon className="ml-2 h-4 w-4 text-muted-foreground" />
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent className="text-xs">
                                     {workspaces.map((workspace) => (
@@ -97,8 +97,8 @@ export default function Sidebar() {
                                         className={cn(
                                             "group flex items-center rounded-md px-2 py-1.5 text-sm font-medium transition-all duration-200 ease-in-out",
                                             isActive 
-                                                ? "bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm text-zinc-900 dark:text-white" 
-                                                : "hover:translate-x-0.5 border border-transparent hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400"
+                                                ? "bg-card border border-zinc-200 dark:border-zinc-700 shadow-sm text-foreground" 
+                                                : "hover:translate-x-0.5 border border-transparent hover:bg-muted text-muted-foreground"
                                         )}
                                     >
                                         <item.icon
@@ -119,22 +119,22 @@ export default function Sidebar() {
                     {/* Settings Menu */}
                     <div className="mt-auto p-4">
                         <DropdownMenu>
-                            <DropdownMenuTrigger className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm text-zinc-600 dark:text-zinc-300 bg-white dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700 shadow-sm transition-colors duration-200">
+                            <DropdownMenuTrigger className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm text-muted-foreground bg-background border border-border hover:bg-muted/10 transition-colors">
                                 <div className="flex items-center">
                                     <div className="h-8 w-8 rounded-full bg-purple-200 dark:bg-purple-900 flex items-center justify-center">
                                         <span className="text-purple-600 dark:text-purple-200 font-medium">JD</span>
                                     </div>
                                     <div className="ml-3 flex flex-col text-left">
-                                        <span className="font-medium text-zinc-900 dark:text-white">John Doe</span>
-                                        <span className="text-xs text-zinc-500 dark:text-zinc-400">john@example.com</span>
+                                        <span className="font-medium text-foreground">John Doe</span>
+                                        <span className="text-xs text-muted-foreground">john@example.com</span>
                                     </div>
                                 </div>
-                                <ChevronUpIcon className="h-5 w-5 text-zinc-400 dark:text-zinc-500" />
+                                <ChevronUpIcon className="h-5 w-5 text-muted-foreground" />
                             </DropdownMenuTrigger>
                             <DropdownMenuContent className="w-64" align="start" side="top">
                                 <div className="px-2 py-1.5">
-                                    <p className="text-sm font-medium text-zinc-900 dark:text-white">Signed in as</p>
-                                    <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">john@example.com</p>
+                                    <p className="text-sm font-medium text-foreground">Signed in as</p>
+                                    <p className="text-xs text-muted-foreground truncate">john@example.com</p>
                                 </div>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem className="flex items-center">

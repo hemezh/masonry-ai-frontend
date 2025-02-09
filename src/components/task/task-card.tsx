@@ -30,15 +30,28 @@ const hasConfigFields = (task: Task) => {
     return task.config_schema?.properties && Object.keys(task.config_schema.properties).length > 0;
 };
 
+const STATUS_STYLES = {
+    completed: { bg: 'bg-secondary', text: 'text-secondary-foreground' },
+    failed: { bg: 'bg-destructive/10', text: 'text-destructive' },
+    running: { bg: 'bg-secondary', text: 'text-secondary-foreground' },
+    pending: { bg: 'bg-secondary', text: 'text-secondary-foreground' },
+} as const;
+
 export function TaskCard({ task, index, onDelete, onConfigureClick }: TaskCardProps) {
     const [isExecuteModalOpen, setIsExecuteModalOpen] = useState(false);
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
     const [latestExecution, setLatestExecution] = useState<TaskExecution | null>(null);
     const [isPolling, setIsPolling] = useState(false);
 
-    // Generate accent color with reduced saturation
-    const hue = (index * 137.508) % 360;
-    const accentColor = `hsl(${hue}, 45%, 55%)`;
+    // Use theme chart colors for variety
+    const chartColors = [
+        'hsl(var(--chart-1))',
+        'hsl(var(--chart-2))',
+        'hsl(var(--chart-3))',
+        'hsl(var(--chart-4))',
+        'hsl(var(--chart-5))'
+    ];
+    const accentColor = chartColors[index % chartColors.length];
 
     const handleExecute = () => {
         setIsExecuteModalOpen(true);
@@ -75,14 +88,7 @@ export function TaskCard({ task, index, onDelete, onConfigureClick }: TaskCardPr
     const getStatusBadge = () => {
         if (!latestExecution) return null;
 
-        const statusConfig = {
-            pending: { bg: 'bg-zinc-100', text: 'text-zinc-800' },
-            running: { bg: 'bg-blue-50', text: 'text-blue-700' },
-            completed: { bg: 'bg-green-50', text: 'text-green-700' },
-            failed: { bg: 'bg-red-50', text: 'text-red-700' }
-        };
-
-        const config = statusConfig[latestExecution.status];
+        const config = STATUS_STYLES[latestExecution.status];
         return (
             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
                 <ClockIcon className="h-3 w-3" />
@@ -177,7 +183,7 @@ export function TaskCard({ task, index, onDelete, onConfigureClick }: TaskCardPr
                 <Button 
                     variant="outline" 
                     size="sm"
-                    className="h-7 text-xs"
+                    className="h-7 text-xs text-muted-foreground"
                     onClick={() => setIsHistoryModalOpen(true)}
                 >
                     <ClockIcon className="h-3.5 w-3.5 mr-1.5" />

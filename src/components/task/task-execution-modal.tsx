@@ -85,22 +85,22 @@ export function TaskExecutionModal({ taskId, outputSchema, isOpen, onClose }: Ta
             case 'completed':
                 return <CheckCircleIcon className="h-4 w-4 text-green-500" />;
             case 'failed':
-                return <XCircleIcon className="h-4 w-4 text-red-500" />;
+                return <XCircleIcon className="h-4 w-4 text-destructive" />;
             default:
                 return <ArrowPathIcon className="h-4 w-4 text-blue-600 animate-spin" />;
         }
     };
 
-    const getStatusClass = (status: TaskExecution['status']) => {
+    const getStatusClasses = (status: string) => {
         switch (status) {
             case 'completed':
-                return 'bg-green-100 text-green-800';
+                return 'bg-secondary text-secondary-foreground';
             case 'failed':
-                return 'bg-red-100 text-red-800';
+                return 'bg-destructive text-destructive-foreground';
             case 'running':
-                return 'bg-blue-100 text-blue-800';
+                return 'bg-secondary text-secondary-foreground';
             default:
-                return 'bg-zinc-100 text-zinc-800';
+                return 'bg-secondary text-secondary-foreground';
         }
     };
 
@@ -125,7 +125,7 @@ export function TaskExecutionModal({ taskId, outputSchema, isOpen, onClose }: Ta
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-[1000px]">
+            <DialogContent className="sm:max-w-[1000px] text-foreground">
                 <DialogHeader>
                     <DialogTitle>Execution History</DialogTitle>
                 </DialogHeader>
@@ -165,7 +165,7 @@ export function TaskExecutionModal({ taskId, outputSchema, isOpen, onClose }: Ta
                                             <TableCell>
                                                 <div className="flex items-center gap-2">
                                                     {getStatusIcon(execution.status)}
-                                                    <span className={`text-xs font-medium px-2 py-1 rounded-full ${getStatusClass(execution.status)}`}>
+                                                    <span className={`text-xs font-medium px-2 py-1 rounded-full ${getStatusClasses(execution.status)}`}>
                                                         {execution.status}
                                                     </span>
                                                 </div>

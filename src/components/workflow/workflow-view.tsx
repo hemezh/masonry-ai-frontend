@@ -12,11 +12,11 @@ import 'reactflow/dist/style.css';
 
 // Constants
 const NODE_STYLES = {
-  start: { color: '#10b981' },
-  end: { color: '#ef4444' },
-  task: { color: '#3b82f6' },
-  parallel: { color: '#f97316' },
-  condition: { color: '#8b5cf6' }
+  start: { color: 'hsl(var(--chart-2))' },
+  end: { color: 'hsl(var(--destructive))' },
+  task: { color: 'hsl(var(--chart-1))' },
+  parallel: { color: 'hsl(var(--chart-4))' },
+  condition: { color: 'hsl(var(--chart-3))' }
 } as const;
 
 const FLOW_DEFAULT_PROPS = {
@@ -48,9 +48,7 @@ const MemoizedBackground = memo(() => (
   <Background
     variant={BackgroundVariant.Dots}
     gap={16}
-    size={1}
-    className='bg-zinc-50'
-    color='--var(--tw-gradient-stops)'
+    className='bg-muted'
   />
 ));
 
