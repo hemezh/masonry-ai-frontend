@@ -75,7 +75,7 @@ export default function RunsPage() {
     return (
         <div className="p-8">
             <div className="mb-8">
-                <h1 className="text-2xl font-semibold text-zinc-900">Workflow Runs</h1>
+                <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Workflow Runs</h1>
                 <p className="text-sm text-zinc-500">Monitor and track your workflow executions</p>
             </div>
 

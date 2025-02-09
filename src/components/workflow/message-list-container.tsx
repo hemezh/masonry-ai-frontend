@@ -25,7 +25,7 @@ export const MessageListContainer = memo(({ messages, isLoading, isEmpty, chatIn
       </div>
 
       {chatInput && (
-        <div className="sticky bottom-0 bg-white">
+        <div className="sticky bottom-0 bg-white dark:bg-zinc-950 border-zinc-100 dark:border-zinc-800">
             {chatInput}
         </div>
       )}

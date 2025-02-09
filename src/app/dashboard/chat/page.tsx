@@ -37,11 +37,11 @@ export default function WorkflowsPage() {
     };
 
     return (
-        <div className="p-8">
+        <div className="p-8 ">
             <div className="mb-8 flex justify-between items-center">
                 <div>
-                    <h1 className="text-2xl font-semibold text-zinc-900">Chats</h1>
-                    <p className="text-sm text-zinc-500">Manage your chats</p>
+                    <h1 className="text-2xl font-semibold text-foreground">Chats</h1>
+                    <p className="text-sm text-muted-foreground">Manage your chats</p>
                 </div>
                 <Button
                     variant="default"
@@ -52,15 +52,15 @@ export default function WorkflowsPage() {
                     </Link>
                 </Button>
             </div>
-            <div className="bg-white rounded-lg border border-zinc-200">
+            <div className="bg-background rounded-lg border border-border">
                 {/* Search and Filter Bar */}
-                <div className="p-4 border-b border-zinc-200">
+                <div className="p-4 border-b border-border">
                     <div className="flex gap-4 items-center">
                         <div className="flex-1">
                             <input
                                 type="text"
                                 placeholder="Search chats..."
-                                className="w-full px-3 py-2 border border-zinc-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                className="w-full px-3 py-2 border border-input rounded-md text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent placeholder:text-muted-foreground"
                             />
                         </div>
                     </div>
@@ -70,45 +70,45 @@ export default function WorkflowsPage() {
                 <div className="overflow-x-auto">
                     <table className="w-full">
                         <thead>
-                            <tr className="border-b border-zinc-200 bg-zinc-50">
-                                <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Name</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Description</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Runs</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Created By</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Created On</th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider">Actions</th>
+                            <tr className="border-b border-border bg-muted">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Name</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Description</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Runs</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Created By</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Created On</th>
+                                <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-zinc-200">
+                        <tbody className="divide-y divide-border">
                             {chats.map((chat) => (
-                                <tr key={chat.id} className="hover:bg-zinc-50">
+                                <tr key={chat.id} className="hover:bg-muted/50">
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <Link
                                             href={`/dashboard/chat/${chat.id}`}
-                                            className="text-sm font-medium text-zinc-900 hover:text-purple-600"
+                                            className="text-sm font-medium text-foreground hover:text-primary"
                                         >
                                             {chat.title || 'Untitled'}
                                         </Link>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <p className="text-sm text-zinc-500 line-clamp-1">
+                                        <p className="text-sm text-muted-foreground line-clamp-1">
                                             {chat.messages?.length > 0 ? chat.messages[0].content : 'No description'}
                                         </p>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className="text-sm text-zinc-600 flex items-center gap-1">
+                                        <span className="text-sm text-muted-foreground flex items-center gap-1">
                                             <PlayIcon className="h-4 w-4" />
                                             {chat.messages?.length}
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className="text-sm text-zinc-600 flex items-center gap-1">
+                                        <span className="text-sm text-muted-foreground flex items-center gap-1">
                                             <UserIcon className="h-4 w-4" />
                                             {chat.user_id}
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className="text-sm text-zinc-600 flex items-center gap-1">
+                                        <span className="text-sm text-muted-foreground flex items-center gap-1">
                                             <CalendarIcon className="h-4 w-4" />
                                             {new Date(chat.created_at).toLocaleDateString(undefined, {
                                                 year: 'numeric',
@@ -125,7 +125,7 @@ export default function WorkflowsPage() {
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent>
-                                                <DropdownMenuItem onClick={() => handleDelete(chat.id.toString())} className="flex items-center gap-2 text-red-600 focus:text-red-500">
+                                                <DropdownMenuItem onClick={() => handleDelete(chat.id.toString())} className="flex items-center gap-2 text-destructive focus:text-destructive">
                                                     <TrashIcon className="h-4 w-4" />
                                                     Delete
                                                 </DropdownMenuItem>
@@ -138,6 +138,6 @@ export default function WorkflowsPage() {
                     </table>
                 </div>
             </div>
-        </div >
+        </div>
     );
 }

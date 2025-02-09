@@ -13,6 +13,7 @@ import { ArrowUpOnSquareIcon, ChevronRightIcon, PlayIcon, ArrowLeftIcon } from '
 import { Button } from '../ui/button';
 import Link from 'next/link';
 import { useWorkflowContext } from '@/contexts/workflow-context';
+import { cn } from '@/lib/utils';
 
 export default function Header() {
     const pathname = usePathname();
@@ -30,75 +31,71 @@ export default function Header() {
     const workflowId = isWorkflowDetailPage ? workflow?.id : '';
 
     return (
-        <header className="bg-white shadow-[0_-4px_16px_-6px_rgba(0,0,0,0.1)] rounded-tl-2xl sticky top-0 z-50">
-            <div className="flex h-16 items-center px-4">
-                {/* Back button - show on detail and new pages */}
-                {(isWorkflowDetailPage) && (
-                    <Button variant="ghost" size="icon" asChild className="mr-4">
-                        <Link href="/dashboard/chat">
-                            <ArrowLeftIcon className="h-5 w-5" />
-                        </Link>
-                    </Button>
-                )}
+        <header className={cn(
+            "sticky top-0 z-50 flex items-center justify-between h-14 px-6",
+            "bg-white/80 dark:bg-zinc-900/80",
+            "backdrop-blur-sm backdrop-saturate-150",
+            "border-b border-zinc-200/50 dark:border-zinc-800/50",
+            "transition-colors duration-200"
+        )}>
+            <div className="flex items-center gap-2">
+                <Link
+                    href="/dashboard/chat"
+                    className={cn(
+                        "group flex items-center gap-2 text-sm font-medium",
+                        "text-zinc-500 dark:text-zinc-400",
+                        "hover:text-zinc-800 dark:hover:text-zinc-100",
+                        "transition-all duration-200"
+                    )}
+                >
+                    <ArrowLeftIcon className={cn(
+                        "h-4 w-4",
+                        "group-hover:-translate-x-0.5 transition-transform duration-200"
+                    )} />
+                    <span>Back to Chats</span>
+                </Link>
+                <ChevronRightIcon className="h-4 w-4 text-zinc-400 dark:text-zinc-600" />
+                <span className={cn(
+                    "text-sm font-medium truncate max-w-[200px]",
+                    "text-zinc-800 dark:text-zinc-200"
+                )}>
+                    {workflowName}
+                </span>
+            </div>
 
-                {/* Breadcrumbs - only show on detail and new pages */}
-                {(isWorkflowDetailPage) && (
-                    <nav className="flex flex-1" aria-label="Breadcrumb">
-                        <ol className="flex items-center space-x-2">
-                            <li>
-                                <div className="flex items-center">
-                                    <Link href="/dashboard" className="text-sm font-medium text-zinc-700 hover:text-zinc-900">
-                                        Dashboard
-                                    </Link>
-                                </div>
-                            </li>
-                            <li>
-                                <div className="flex items-center">
-                                    <ChevronRightIcon className="h-4 w-4 text-zinc-400" />
-                                    <Link href="/dashboard/workflows" className="ml-2 text-sm font-medium text-zinc-700 hover:text-zinc-900">
-                                        Workflows
-                                    </Link>
-                                </div>
-                            </li>
-                            {isWorkflowDetailPage && (
-                                <li>
-                                    <div className="flex items-center">
-                                        <ChevronRightIcon className="h-4 w-4 text-zinc-400" />
-                                        <span className="ml-2 text-sm font-medium text-zinc-700">
-                                            {workflowName || 'Untitled Workflow'}
-                                        </span>
-                                    </div>
-                                </li>
-                            )}
-                            {isNewWorkflowPage && (
-                                <li>
-                                    <div className="flex items-center">
-                                        <ChevronRightIcon className="h-4 w-4 text-zinc-400" />
-                                        <span className="ml-2 text-sm font-medium text-zinc-700">
-                                            New Workflow
-                                        </span>
-                                    </div>
-                                </li>
-                            )}
-                        </ol>
-                    </nav>
-                )}
-
-                {/* Action buttons - only show on detail pages */}
-                {isWorkflowDetailPage && (
-                    <div className="flex items-center gap-2">
-                        <Button variant="default" asChild>
-                            <Link href={`/dashboard/workflows/${workflowId}/run`}>
-                                <PlayIcon className="h-5 w-5 mr-2" /> Run Workflow
-                            </Link>
-                        </Button>
-                        <Button variant="outline" asChild>
-                            <Link href={`/dashboard/workflows/${workflowId}/share`}>
-                                <ArrowUpOnSquareIcon className="h-5 w-5 mr-2" /> Share Workflow
-                            </Link>
-                        </Button>
-                    </div>
-                )}
+            <div className="flex items-center gap-2">
+                <Button
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                        "text-zinc-600 dark:text-zinc-300",
+                        "bg-white dark:bg-zinc-900",
+                        "border border-zinc-200 dark:border-zinc-800",
+                        "hover:bg-zinc-50 dark:hover:bg-zinc-800/50",
+                        "hover:text-zinc-900 dark:hover:text-white",
+                        "hover:border-zinc-300 dark:hover:border-zinc-700",
+                        "transition-all duration-200"
+                    )}
+                >
+                    <ArrowUpOnSquareIcon className="h-4 w-4 mr-2" />
+                    Share
+                </Button>
+                <Button
+                    variant="default"
+                    size="sm"
+                    className={cn(
+                        "bg-zinc-900 dark:bg-white",
+                        "text-white dark:text-zinc-900",
+                        "border border-zinc-900 dark:border-white",
+                        "hover:bg-zinc-800 dark:hover:bg-zinc-100",
+                        "hover:border-zinc-800 dark:hover:border-zinc-100",
+                        "transition-all duration-200",
+                        "shadow-sm"
+                    )}
+                >
+                    <PlayIcon className="h-4 w-4 mr-2" />
+                    Run
+                </Button>
             </div>
         </header>
     );

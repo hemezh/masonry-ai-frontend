@@ -38,8 +38,8 @@ export default function CreateWorkflowPage() {
                     </Link>
                 </Button>
                 <div>
-                    <h1 className="text-2xl font-semibold text-zinc-900">Create Chat</h1>
-                    <p className="text-sm text-zinc-500">
+                    <h1 className="text-2xl font-semibold text-foreground">Create Chat</h1>
+                    <p className="text-sm text-muted-foreground">
                         Describe your workflow and I'll help you build it
                     </p>
                 </div>
@@ -48,10 +48,10 @@ export default function CreateWorkflowPage() {
             <div className="flex-1 flex flex-col max-w-3xl mx-auto w-full">
                 <div className="flex-1 flex flex-col justify-center -mt-20">
                     <div className="text-center mb-8">
-                        <h2 className="text-xl font-medium text-zinc-900 mb-4">
+                        <h2 className="text-xl font-medium text-foreground mb-4">
                             What would you like to chat about?
                         </h2>
-                        <p className="text-zinc-500">
+                        <p className="text-muted-foreground">
                             Describe your workflow in natural language and I'll help you build it
                         </p>
                     </div>

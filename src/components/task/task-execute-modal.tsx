@@ -79,23 +79,18 @@ export function TaskExecuteModal({ task, isOpen, onClose, onExecuted }: TaskExec
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-[600px]">
+            <DialogContent className="sm:max-w-[500px]">
                 <form onSubmit={handleSubmit}>
                     <DialogHeader>
-                        <DialogTitle>Execute Task: {task.name}</DialogTitle>
+                        <DialogTitle>Execute {task.name}</DialogTitle>
                     </DialogHeader>
                     
-                    <div className="py-4">
-                        <div className="space-y-4">
-                            <div>
-                                <h3 className="text-sm font-medium mb-2">Input</h3>
-                                <SchemaFields
-                                    values={input}
-                                    onChange={setInput}
-                                    schema={task.input_schema}
-                                />
-                            </div>
-                        </div>
+                    <div className="space-y-4 py-4">
+                        <SchemaFields
+                            values={input}
+                            onChange={setInput}
+                            schema={task.input_schema}
+                        />
                     </div>
 
                     <DialogFooter>

@@ -92,7 +92,7 @@ export function TaskCard({ task, index, onDelete, onConfigureClick }: TaskCardPr
     };
 
     return (
-        <div className="bg-white rounded-lg border border-zinc-200 p-3 relative h-48 flex flex-col overflow-hidden">
+        <div className="bg-background rounded-lg border border-border p-3 relative h-48 flex flex-col overflow-hidden">
             {/* Accent border */}
             <div 
                 className="absolute left-0 top-0 rounded-lg bottom-0 w-0.5" 
@@ -102,21 +102,21 @@ export function TaskCard({ task, index, onDelete, onConfigureClick }: TaskCardPr
             {/* Status badges */}
             <div className="flex items-center gap-2 mb-2 ">
                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                    task.status === 'Active' ? 'bg-green-50 text-green-700' :
-                    'bg-zinc-50 text-zinc-700 border border-zinc-200'
+                    task.status === 'Active' ? 'bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300' :
+                    'bg-muted text-muted-foreground border border-border'
                 }`}>
                     {task.status}
                 </span>
-                {/* {getStatusBadge()} */}
+                {getStatusBadge()}
             </div>
 
             {/* Header section */}
             <div className="flex justify-between items-start mb-1.5">
                 <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-zinc-900 text-sm mb-0.5 line-clamp-1">
+                    <h3 className="font-medium text-foreground text-sm mb-0.5 line-clamp-1">
                         {toTitleCase(task.name)}
                     </h3>
-                    <span className="text-xs text-zinc-400 font-mono">
+                    <span className="text-xs text-muted-foreground font-mono">
                         {task.id}
                     </span>
                 </div>
@@ -127,13 +127,13 @@ export function TaskCard({ task, index, onDelete, onConfigureClick }: TaskCardPr
                             size="icon" 
                             className="h-8 w-8"
                         >
-                            <EllipsisVerticalIcon className="h-4 w-4 text-zinc-500" />
+                            <EllipsisVerticalIcon className="h-4 w-4 text-muted-foreground" />
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48">
                         <DropdownMenuItem 
                             onClick={() => onDelete(task.id)} 
-                            className="text-red-600"
+                            className="text-red-600 dark:text-red-400"
                         >
                             <TrashIcon className="h-4 w-4 mr-2" />
                             Delete
@@ -144,7 +144,7 @@ export function TaskCard({ task, index, onDelete, onConfigureClick }: TaskCardPr
             
             {/* Description - Fixed visibility */}
             <div className="flex-1">
-                <p className="text-sm text-zinc-600 leading-normal line-clamp-2 overflow-hidden">
+                <p className="text-sm text-muted-foreground leading-normal line-clamp-2 overflow-hidden">
                     {task.description}
                 </p>
             </div>

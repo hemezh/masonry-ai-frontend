@@ -253,13 +253,10 @@ function WorkflowChatPageContent() {
   /**
    * Layout class computation
    * 
-   * This memoized object manages complex layout logic:
-   * 1. Responsive sizing based on workflow presence
-   * 2. Dynamic transitions and animations
-   * 3. Conditional styling based on content state
-   * 
-   * The implementation uses Tailwind CSS for efficient styling
-   * and includes careful management of overflow behaviors.
+   * Updated to support dark mode theming:
+   * - Background colors now use theme-aware classes
+   * - Text colors adapt to theme
+   * - Borders and shadows adjusted for better dark mode visibility
    */
   const layoutClasses = useMemo(() => ({
     outerContainer: "h-full relative flex",
@@ -268,7 +265,7 @@ function WorkflowChatPageContent() {
       showWorkflow ? "flex gap-4 p-4" : "flex"
     ),
     chatSection: cn(
-      "flex flex-col bg-white rounded-lg shadow-sm",
+      "flex flex-col",
       showWorkflow ? "w-[40rem] shrink-0" : "w-full max-w-[40rem] mx-auto"
     ),
     messagesContainer: cn(
@@ -276,8 +273,18 @@ function WorkflowChatPageContent() {
       messages.length === 0 ? "flex items-end" : ""
     ),
     workflowSection: showWorkflow 
-      ? "flex-1 bg-zinc-50 rounded-lg overflow-hidden shadow-sm" 
-      : ""
+      ? cn(
+          "flex-1 rounded-lg overflow-hidden shadow-sm",
+          "bg-zinc-50 dark:bg-zinc-900/50",
+          "border border-zinc-100 dark:border-zinc-800"
+        )
+      : "",
+    loadingContainer: cn(
+      "absolute inset-0 flex items-center justify-center",
+      "bg-white dark:bg-zinc-900"
+    ),
+    loadingIcon: "h-8 w-8 animate-spin text-zinc-500 dark:text-zinc-400",
+    loadingText: "text-sm text-zinc-500 dark:text-zinc-400"
   }), [showWorkflow, messages.length]);
 
   return (
@@ -286,15 +293,13 @@ function WorkflowChatPageContent() {
         <div className={layoutClasses.chatSection}>
           <div className={layoutClasses.messagesContainer}>
             {isInitialLoad ? (
-              // Loading state UI
-              <div className="absolute inset-0 flex items-center justify-center">
+              <div className={layoutClasses.loadingContainer}>
                 <div className="flex flex-col items-center gap-3">
-                  <ArrowPathIcon className="h-8 w-8 animate-spin text-zinc-500" />
-                  <p className="text-sm text-zinc-500">Loading messages...</p>
+                  <ArrowPathIcon className={layoutClasses.loadingIcon} />
+                  <p className={layoutClasses.loadingText}>Loading messages...</p>
                 </div>
               </div>
             ) : (
-              // Main chat interface
               <MessageListContainer 
                 messages={messages} 
                 isLoading={false}
@@ -310,7 +315,6 @@ function WorkflowChatPageContent() {
           </div>
         </div>
 
-        {/* Conditional workflow visualization */}
         {showWorkflow && (
           <div className={layoutClasses.workflowSection}>
             <WorkflowView 

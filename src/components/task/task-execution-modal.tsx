@@ -134,18 +134,18 @@ export function TaskExecutionModal({ taskId, outputSchema, isOpen, onClose }: Ta
                     {isLoading ? (
                         <div className="space-y-4">
                             {[1, 2, 3].map(i => (
-                                <div key={i} className="bg-zinc-50 rounded-lg p-4 animate-pulse">
-                                    <div className="h-4 bg-zinc-200 rounded w-1/4 mb-2"></div>
-                                    <div className="h-3 bg-zinc-200 rounded w-1/3"></div>
+                                <div key={i} className="bg-muted rounded-lg p-4 animate-pulse">
+                                    <div className="h-4 bg-muted-foreground/20 rounded w-1/4 mb-2"></div>
+                                    <div className="h-3 bg-muted-foreground/20 rounded w-1/3"></div>
                                 </div>
                             ))}
                         </div>
                     ) : error ? (
-                        <div className="text-center py-8 text-red-500">
+                        <div className="text-center py-8 text-destructive">
                             {error.message}
                         </div>
                     ) : executions.length === 0 ? (
-                        <div className="text-center py-8 text-zinc-500">
+                        <div className="text-center py-8 text-muted-foreground">
                             No executions found
                         </div>
                     ) : (

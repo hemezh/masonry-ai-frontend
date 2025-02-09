@@ -42,7 +42,7 @@ export function ChatInput({ prompt, hasStarted, onPromptChange, onSubmit, isLoad
                         : "e.g., Create a workflow to process incoming invoices and update our accounting system"
                 }
                 rows={4}
-                className="w-full p-4 pr-12 resize-none shadow-md"
+                className="w-full p-4 pr-12 resize-none  border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400"
                 disabled={isLoading}
             />
             <div className="absolute right-2 top-2 flex flex-col items-end gap-2">
@@ -50,6 +50,7 @@ export function ChatInput({ prompt, hasStarted, onPromptChange, onSubmit, isLoad
                     type="submit"
                     size="icon"
                     disabled={isLoading}
+                    className="bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200"
                 >
                     {isLoading ? (
                         <ArrowPathIcon className="h-5 w-5 animate-spin" />
@@ -57,7 +58,7 @@ export function ChatInput({ prompt, hasStarted, onPromptChange, onSubmit, isLoad
                         <ArrowUpIcon className="h-5 w-5" />
                     )}
                 </Button>
-                <span className="text-xs text-zinc-500">{shortcutHint}</span>
+                <span className="text-xs text-zinc-500 dark:text-zinc-400">{shortcutHint}</span>
             </div>
         </form>
     )
