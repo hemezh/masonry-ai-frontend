@@ -19,7 +19,7 @@ const log = (message: string, data?: any) => {
 export default function TasksPage() {
     const [tasks, setTasks] = useState<Task[]>([]);
     const [statusFilter, setStatusFilter] = useState<'all' | Task['status']>('all');
-    const [selectedTaskConfig, setSelectedTaskConfig] = useState<{ task: Task; configId: string } | null>(null);
+    const [selectedTask, setSelectedTask] = useState<Task | null>(null);
     const fetchCount = useRef(0);
     const strictModeRender = useRef(false);
     
@@ -64,6 +64,8 @@ export default function TasksPage() {
 
     const handleConfigUpdate = (config: TaskConfig) => {
         log('Task configuration updated:', config);
+        // Optionally refresh tasks if needed
+        fetchTasks();
     };
 
     return (
@@ -77,17 +79,16 @@ export default function TasksPage() {
                 tasks={tasks}
                 isLoading={isLoading}
                 onDelete={handleDelete}
-                onConfigureClick={(task) => setSelectedTaskConfig({ task, configId: task.id })}
+                onConfigureClick={setSelectedTask}
             />
             {!isLoading && tasks.length === 0 && (
                 <TaskEmptyState statusFilter={statusFilter} />
             )}
-            {selectedTaskConfig && (
+            {selectedTask && (
                 <TaskConfigModal
-                    task={selectedTaskConfig.task}
-                    configId={selectedTaskConfig.configId}
+                    task={selectedTask}
                     isOpen={true}
-                    onClose={() => setSelectedTaskConfig(null)}
+                    onClose={() => setSelectedTask(null)}
                     onConfigUpdate={handleConfigUpdate}
                 />
             )}

@@ -17,10 +17,8 @@ import { useRouter } from 'next/navigation';
 
 const navigation = [
     { name: 'Home', href: '/dashboard', icon: HomeIcon },
-    { name: 'Workflows', href: '/dashboard/workflows', icon: CpuChipIcon },
+    { name: 'Chats', href: '/dashboard/chat', icon: CpuChipIcon },
     { name: 'Tasks', href: '/dashboard/tasks', icon: ClipboardDocumentListIcon },
-    { name: 'Runs', href: '/dashboard/runs', icon: PlayIcon },
-    { name: 'Integrations', href: '/dashboard/integrations', icon: PuzzlePieceIcon },
 ];
 
 const workspaces = [
@@ -81,10 +79,10 @@ export default function Sidebar() {
                         <nav className="mt-8 space-y-1 px-4">
                             <div className="flex items-center justify-between mb-4">
                                 <Button variant="default" size="sm" onClick={() => {
-                                    router.push('/dashboard/workflows/new');
+                                    router.push('/dashboard/chat/new');
                                 }}>
                                     <PlusIcon className="h-4 w-4" />
-                                    <span>New Workflow</span>
+                                    <span>New Chat</span>
                                 </Button>
                             </div>
                             {navigation.map((item) => {

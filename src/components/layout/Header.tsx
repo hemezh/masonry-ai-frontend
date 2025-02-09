@@ -16,8 +16,8 @@ import { useWorkflowContext } from '@/contexts/workflow-context';
 
 export default function Header() {
     const pathname = usePathname();
-    const isWorkflowDetailPage = pathname?.match(/^\/dashboard\/workflows\/[^/]+$/);
-    const isNewWorkflowPage = pathname === '/dashboard/workflows/new';
+    const isWorkflowDetailPage = pathname?.match(/^\/dashboard\/chat\/[^/]+$/);
+    const isNewWorkflowPage = pathname === '/dashboard/chat/new';
     const { workflow } = useWorkflowContext();
 
     // Don't render header on dashboard home
@@ -26,7 +26,7 @@ export default function Header() {
     }
 
     // Get workflow name from context instead of URL
-    const workflowName = isWorkflowDetailPage ? workflow?.name || 'Untitled Workflow' : '';
+    const workflowName = isWorkflowDetailPage ? workflow?.name || 'Untitled Chat' : '';
     const workflowId = isWorkflowDetailPage ? workflow?.id : '';
 
     return (
@@ -35,7 +35,7 @@ export default function Header() {
                 {/* Back button - show on detail and new pages */}
                 {(isWorkflowDetailPage) && (
                     <Button variant="ghost" size="icon" asChild className="mr-4">
-                        <Link href="/dashboard/workflows">
+                        <Link href="/dashboard/chat">
                             <ArrowLeftIcon className="h-5 w-5" />
                         </Link>
                     </Button>

@@ -23,7 +23,7 @@ export default function CreateWorkflowPage() {
             const chat = await createChat("current_user", '');
 
             // Redirect to the workflow chat page
-            router.push(`/dashboard/workflows/${chat.id}?prompt=${encodeURIComponent(prompt)}`);
+            router.push(`/dashboard/chat/${chat.id}?prompt=${encodeURIComponent(prompt)}`);
         } catch (error) {
             console.error('Failed to create workflow:', error);
         }
@@ -33,12 +33,12 @@ export default function CreateWorkflowPage() {
         <div className="flex flex-col h-[calc(100vh-4rem)] p-8">
             <div className="mb-8 flex items-center gap-4">
                 <Button variant="ghost" size="icon" asChild>
-                    <Link href="/dashboard/workflows">
+                    <Link href="/dashboard/chat">
                         <ArrowLeftIcon className="h-5 w-5" />
                     </Link>
                 </Button>
                 <div>
-                    <h1 className="text-2xl font-semibold text-zinc-900">Create Workflow</h1>
+                    <h1 className="text-2xl font-semibold text-zinc-900">Create Chat</h1>
                     <p className="text-sm text-zinc-500">
                         Describe your workflow and I'll help you build it
                     </p>
@@ -49,7 +49,7 @@ export default function CreateWorkflowPage() {
                 <div className="flex-1 flex flex-col justify-center -mt-20">
                     <div className="text-center mb-8">
                         <h2 className="text-xl font-medium text-zinc-900 mb-4">
-                            What workflow would you like to create?
+                            What would you like to chat about?
                         </h2>
                         <p className="text-zinc-500">
                             Describe your workflow in natural language and I'll help you build it

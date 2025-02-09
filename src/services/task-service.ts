@@ -1,6 +1,6 @@
 import { apiClient } from '@/lib/api-client';
 import { Task, CreateTaskPayload, UpdateTaskPayload, TaskExecution, ExecuteTaskPayload } from '@/types/task-api';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 
 class TaskService {
     private baseUrl = '/tasks';
@@ -48,14 +48,71 @@ class TaskService {
         await apiClient.delete(`${this.baseUrl}/${id}`);
     }
 
-    async getTaskConfig(configId: string): Promise<TaskConfig> {
-        const response = await apiClient.get<{ data: TaskConfig }>(`${this.baseUrl}/config/${configId}`);
-        return response.data.data;
+    async createTaskConfig(taskId: string, payload: UpdateTaskConfigPayload): Promise<TaskConfig> {
+        console.log(`Creating task config for task ${taskId} with values:`, payload);
+        try {
+            const response = await apiClient.post<TaskConfig>(`${this.baseUrl}/${taskId}/config`, payload);
+            console.log(`Successfully created task config for task ${taskId}:`, response.data);
+            return response.data;
+        } catch (error) {
+            console.log(`Error creating task config for task ${taskId}:`, error);
+            throw error;
+        }
     }
 
-    async updateTaskConfig(configId: string, payload: UpdateTaskConfigPayload): Promise<TaskConfig> {
-        const response = await apiClient.put<{ data: TaskConfig }>(`${this.baseUrl}/config/${configId}`, payload);
-        return response.data.data;
+    async getTaskConfig(taskId: string): Promise<TaskConfig> {
+        console.log(`Getting task config for task ${taskId}`);
+        try {
+            const response = await apiClient.get<TaskConfig>(`${this.baseUrl}/${taskId}/config`);
+            console.log(`Successfully retrieved task config for task ${taskId}:`, response.data);
+            return response.data;
+        } catch (error) {
+            console.log(`Error getting task config for task ${taskId}:`, error);
+            throw error;
+        }
+    }
+
+    async updateTaskConfig(taskId: string, payload: UpdateTaskConfigPayload): Promise<TaskConfig> {
+        console.log(`Updating task config for task ${taskId} with values:`, payload);
+        try {
+            const response = await apiClient.put<TaskConfig>(`${this.baseUrl}/${taskId}/config`, payload);
+            console.log(`Successfully updated task config for task ${taskId}:`, response.data);
+            return response.data;
+        } catch (error) {
+            console.log(`Error updating task config for task ${taskId}:`, error);
+            throw error;
+        }
+    }
+
+    async createOrUpdateTaskConfig(taskId: string, values: Record<string, any>): Promise<TaskConfig> {
+        console.log(`Attempting to create or update task config for task ${taskId} with values:`, values);
+        const payload: UpdateTaskConfigPayload = { values };
+        
+        try {
+            // First try to get existing config
+            console.log(`Checking for existing config for task ${taskId}`);
+            try {
+                await this.getTaskConfig(taskId);
+                console.log(`Found existing config for task ${taskId}, updating...`);
+                // If config exists, update it
+                return await this.updateTaskConfig(taskId, payload);
+            } catch (error) {
+                // Check if error is 404 Not Found
+                if (error instanceof AxiosError && error.response?.status === 404) {
+                    console.log(`No existing config found for task ${taskId}, creating new config...`);
+                    // If config doesn't exist, create new one
+                    return await this.createTaskConfig(taskId, payload);
+                }
+                throw error; // Re-throw if it's not a 404
+            }
+        } catch (error) {
+            console.log(`Error in createOrUpdateTaskConfig for task ${taskId}:`, error);
+            throw error;
+        }
+    }
+
+    async deleteTaskConfig(taskId: string): Promise<void> {
+        await apiClient.delete(`${this.baseUrl}/${taskId}/config`);
     }
 
     async executeTask(taskId: string, payload: ExecuteTaskPayload): Promise<TaskExecution> {
@@ -97,16 +154,12 @@ class TaskService {
 export interface TaskConfig {
     id: string;
     task_id: string;
-    name: string;
-    description: string;
     values: Record<string, any>;
     created_at: string;
     updated_at: string;
 }
 
 export interface UpdateTaskConfigPayload {
-    name: string;
-    description: string;
     values: Record<string, any>;
 }
 

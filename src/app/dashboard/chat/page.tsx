@@ -40,15 +40,15 @@ export default function WorkflowsPage() {
         <div className="p-8">
             <div className="mb-8 flex justify-between items-center">
                 <div>
-                    <h1 className="text-2xl font-semibold text-zinc-900">Workflows</h1>
-                    <p className="text-sm text-zinc-500">Manage your automation workflows</p>
+                    <h1 className="text-2xl font-semibold text-zinc-900">Chats</h1>
+                    <p className="text-sm text-zinc-500">Manage your chats</p>
                 </div>
                 <Button
                     variant="default"
                     asChild
                 >
-                    <Link href="/dashboard/workflows/new">
-                        Create Workflow
+                    <Link href="/dashboard/chat/new">
+                        Create Chat
                     </Link>
                 </Button>
             </div>
@@ -59,7 +59,7 @@ export default function WorkflowsPage() {
                         <div className="flex-1">
                             <input
                                 type="text"
-                                placeholder="Search workflows..."
+                                placeholder="Search chats..."
                                 className="w-full px-3 py-2 border border-zinc-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                             />
                         </div>
@@ -84,7 +84,7 @@ export default function WorkflowsPage() {
                                 <tr key={chat.id} className="hover:bg-zinc-50">
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <Link
-                                            href={`/dashboard/workflows/${chat.id}`}
+                                            href={`/dashboard/chat/${chat.id}`}
                                             className="text-sm font-medium text-zinc-900 hover:text-purple-600"
                                         >
                                             {chat.title || 'Untitled'}
