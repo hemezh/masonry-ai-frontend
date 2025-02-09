@@ -100,7 +100,16 @@
   .scrollbar::-webkit-scrollbar-track,
   .scrollbar::-webkit-scrollbar-thumb,
   .scrollbar::-webkit-scrollbar-thumb:hover {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  
+  }
     /* These will be removed */
+  .scrollbar-none {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari and Opera */
   }
 }
 
@@ -110,4 +119,24 @@
   }
   body {
   }
+}
+
+/* Update the resize handle styles */
+.react-resizable-handle {
+  position: absolute;
+  right: -5px; /* Move handle to overlap with border */
+  bottom: 0;
+  width: 10px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 2;
+}
+
+.react-resizable-handle:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Add styles for the resizable container */
+.react-resizable {
+  position: relative;
 }
