@@ -97,7 +97,7 @@ export default function Sidebar() {
                                         className={cn(
                                             "group flex items-center rounded-md px-2 py-1.5 text-sm font-medium transition-all duration-200 ease-in-out",
                                             isActive 
-                                                ? "bg-card border border-zinc-200 dark:border-zinc-700 shadow-sm text-foreground" 
+                                                ? "bg-muted shadow-sm text-foreground" 
                                                 : "hover:translate-x-0.5 border border-transparent hover:bg-muted text-muted-foreground"
                                         )}
                                     >
@@ -150,18 +150,16 @@ export default function Sidebar() {
                                     <span>Help & Support</span>
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem className="flex items-center justify-between" onSelect={(e) => {
+                                <DropdownMenuItem className="flex items-center" onSelect={(e) => {
                                     e.preventDefault();
                                     toggleTheme();
                                 }}>
-                                    <div className="flex items-center">
-                                        {theme === 'dark' ? (
-                                            <SunIcon className="mr-2 h-4 w-4" />
-                                        ) : (
-                                            <MoonIcon className="mr-2 h-4 w-4" />
-                                        )}
-                                        <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
-                                    </div>
+                                    {theme === 'dark' ? (
+                                        <SunIcon className="mr-2 h-4 w-4" />
+                                    ) : (
+                                        <MoonIcon className="mr-2 h-4 w-4" />
+                                    )}
+                                    <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem className="flex items-center text-red-600 dark:text-red-400">
