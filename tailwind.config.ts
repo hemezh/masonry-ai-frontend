@@ -13,8 +13,8 @@ const config: Config = {
 				background: 'var(--background)',
 				foreground: 'var(--foreground)',
 				card: {
-					DEFAULT: 'var(--card)',
-					foreground: 'var(--card-foreground)'
+					DEFAULT: 'hsl(var(--card))',
+					foreground: 'hsl(var(--card-foreground))'
 				},
 				popover: {
 					DEFAULT: 'var(--popover)',

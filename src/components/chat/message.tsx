@@ -126,7 +126,7 @@ const ContentBlock = ({ block, steps }: { block: ContentBlockType; steps: Record
         }, [step.details, showDetails]);
 
         return (
-            <div className="flex flex-col my-2 py-1 border bg-background border-border rounded-md text-sm">
+            <div className="flex flex-col my-2 py-1 border bg-secondary border-border rounded-md text-sm">
                 <div
                     className="flex items-center gap-2 px-2 py-1 cursor-pointer"
                     onClick={() => setShowDetails(!showDetails)}
@@ -204,7 +204,7 @@ export function ChatMessage({ message }: { message: ChatMessageType }) {
     return (
         <div className={cn(
             "flex gap-4 p-4 w-full",
-            message.role === "assistant" && "bg-muted/50 rounded-lg"
+            message.role === "assistant" && "bg-muted rounded-lg"
         )}>
             {message.role === "user" && (
                 <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">

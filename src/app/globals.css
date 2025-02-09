@@ -42,22 +42,22 @@
     /* Dark theme */
     --background: rgb(18, 18, 23);           /* Deep, rich background */
     --foreground: rgb(242, 242, 247);        /* Soft white text */
-    --card: rgb(18, 18, 23);
+    --card: hsl(18, 18, 23);
     --card-foreground: rgb(242, 242, 247);
     --popover: rgb(18, 18, 23);
     --popover-foreground: rgb(242, 242, 247);
     --primary: rgb(242, 242, 247);
     --primary-foreground: rgb(18, 18, 23);
-    --secondary: rgb(38, 38, 44);            /* Subtle contrast for secondary elements */
+    --secondary: rgb(28, 28, 33);        /* Subtle contrast for secondary elements */
     --secondary-foreground: rgb(242, 242, 247);
-    --muted: rgb(38, 38, 44);
+    --muted: rgb(44, 44, 51);
     --muted-foreground: rgb(167, 167, 177);  /* More visible muted text */
-    --accent: rgb(38, 38, 44);
+    --accent: rgb(44, 44, 51);
     --accent-foreground: rgb(242, 242, 247);
     --destructive: rgb(246, 87, 87);         /* Brighter red for dark mode visibility */
     --destructive-foreground: rgb(242, 242, 247);
     --border: rgb(61, 61, 70);
-    --input: rgb(38, 38, 44);
+    --input: rgb(18, 18, 23);
     --ring: rgb(242, 242, 247);
     
     /* Dark mode chart colors - slightly brightened for contrast */

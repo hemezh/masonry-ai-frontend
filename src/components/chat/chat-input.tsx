@@ -42,7 +42,7 @@ export function ChatInput({ prompt, hasStarted, onPromptChange, onSubmit, isLoad
                         : "e.g., Create a workflow to process incoming invoices and update our accounting system"
                 }
                 rows={4}
-                className="w-full p-4 pr-12 resize-none border-border text-foreground placeholder:text-muted-foreground"
+                className="w-full p-4 pr-12 resize-none border-border text-foreground placeholder:text-muted-foreground bg-input"
                 disabled={isLoading}
             />
             <div className="absolute right-2 top-2 flex flex-col items-end gap-2">

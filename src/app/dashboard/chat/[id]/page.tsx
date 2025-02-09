@@ -281,7 +281,6 @@ function WorkflowChatPageContent() {
       : "",
     loadingContainer: cn(
       "absolute inset-0 flex items-center justify-center",
-      "bg-background"
     ),
     loadingIcon: "h-8 w-8 animate-spin text-muted-foreground",
     loadingText: "text-sm text-muted-foreground"

@@ -33,9 +33,6 @@ export default function Header() {
     return (
         <header className={cn(
             "sticky top-0 z-50 flex items-center justify-between h-14 px-6",
-            "bg-card/80 backdrop-blur-sm",
-            "backdrop-saturate-150",
-            "border-b border-zinc-200/50 dark:border-zinc-800/50",
             "transition-colors duration-200"
         )}>
             <div className="flex items-center gap-2">

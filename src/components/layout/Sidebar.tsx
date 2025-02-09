@@ -98,7 +98,7 @@ export default function Sidebar() {
                                             "group flex items-center rounded-md px-2 py-1.5 text-sm font-medium transition-all duration-200 ease-in-out",
                                             isActive 
                                                 ? "bg-muted shadow-sm text-foreground" 
-                                                : "hover:translate-x-0.5 border border-transparent hover:bg-muted text-muted-foreground"
+                                                : "hover:translate-x-0.5 hover:bg-muted text-muted-foreground"
                                         )}
                                     >
                                         <item.icon
