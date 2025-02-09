@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { HomeIcon, ChatBubbleLeftRightIcon, Cog6ToothIcon, QuestionMarkCircleIcon, UserIcon, ArrowRightIcon, PlusIcon, ChevronUpDownIcon, ClipboardDocumentListIcon, SunIcon, MoonIcon } from '@heroicons/react/24/outline';
+import { HomeIcon, ChatBubbleLeftRightIcon, Cog6ToothIcon, QuestionMarkCircleIcon, UserIcon, ArrowRightIcon, PlusIcon, ChevronUpDownIcon, ClipboardDocumentListIcon, SunIcon, MoonIcon, TableCellsIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import {
     DropdownMenu,
@@ -21,6 +21,12 @@ const navigation = [
     { name: 'Home', href: '/dashboard', icon: HomeIcon },
     { name: 'Chats', href: '/dashboard/chat', icon: ChatBubbleLeftRightIcon },
     { name: 'Tasks', href: '/dashboard/tasks', icon: ClipboardDocumentListIcon },
+    {
+        name: 'Sheets',
+        href: '/dashboard/sheets',
+        icon: TableCellsIcon,
+        current: false,
+    },
 ];
 
 const workspaces = [
