@@ -22,7 +22,12 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+let app;
+if (typeof window !== 'undefined') {
+  app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+} else {
+  throw new Error('Firebase initialization failed: Browser environment required');
+}
 const auth = getAuth(app);
 
 export type AuthUser = User;

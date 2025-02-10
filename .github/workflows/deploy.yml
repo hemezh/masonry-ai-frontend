@@ -1,4 +1,4 @@
-name: Deploy to Production
+name: Deploy
 
 on:
   push:
@@ -7,9 +7,6 @@ on:
 
 env:
   AWS_REGION: us-east-1  # Change this to your AWS region
-  S3_BUCKET: your-deployment-bucket  # Change this to your S3 bucket name
-  APPLICATION_NAME: masonry-ai-frontend
-  DEPLOYMENT_GROUP: masonry-ai-production  # Change this to your deployment group name
   PNPM_VERSION: 8.15.9  # Specify exact version to match your local environment
 
 jobs:
