@@ -3,7 +3,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { firebaseAuth, AuthUser } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
-import { cookies } from 'next/headers';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -21,6 +20,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
+  const setAuthToken = (token: string | null) => {
+    if (token) {
+      localStorage.setItem('auth_token', token);
+      document.cookie = `token=${token};path=/;`;
+    } else {
+      localStorage.removeItem('auth_token');
+      document.cookie = 'token=;path=/;expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+    }
+  };
+
   useEffect(() => {
     // Subscribe to auth state changes
     const unsubscribe = firebaseAuth.onAuthStateChanged(async (user) => {
@@ -28,11 +37,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
       
       if (user) {
-        // Set the token cookie when user is authenticated
-        document.cookie = `token=${await user.getIdToken()};path=/;`;
+        const token = await user.getIdToken();
+        setAuthToken(token);
       } else {
-        // Remove the token cookie when user is not authenticated
-        document.cookie = 'token=;path=/;expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+        setAuthToken(null);
       }
     });
 
@@ -45,7 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { user } = await firebaseAuth.signInWithEmail(email, password);
       setUser(user);
       const token = await user.getIdToken();
-      document.cookie = `token=${token};path=/;`;
+      setAuthToken(token);
       router.push('/dashboard');
     } catch (error) {
       throw error;
@@ -57,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { user } = await firebaseAuth.signUpWithEmail(email, password);
       setUser(user);
       const token = await user.getIdToken();
-      document.cookie = `token=${token};path=/;`;
+      setAuthToken(token);
       router.push('/dashboard');
     } catch (error) {
       throw error;
@@ -69,7 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { user } = await firebaseAuth.signInWithGoogle();
       setUser(user);
       const token = await user.getIdToken();
-      document.cookie = `token=${token};path=/;`;
+      setAuthToken(token);
       router.push('/dashboard');
     } catch (error) {
       throw error;
@@ -80,7 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await firebaseAuth.signOut();
       setUser(null);
-      document.cookie = 'token=;path=/;expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+      setAuthToken(null);
       router.push('/auth');
     } catch (error) {
       throw error;

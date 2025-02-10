@@ -1,5 +1,0 @@
----
-description: When generating or editing the components 
-globs: *.tsx
----
-Always use heroicons

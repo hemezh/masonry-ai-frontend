@@ -1,7 +1,10 @@
+'use client';
+
 import './globals.css';
 import { Inter } from 'next/font/google';
 import { ThemeProvider } from '@/contexts/theme-context';
 import { AuthProvider } from '@/contexts/auth-context';
+import { WorkspaceProvider } from '@/contexts/workspace-context';
 import { Toaster } from '@/components/ui/toaster';
 import LayoutWrapper from '@/components/layout/layout-wrapper';
 
@@ -30,8 +33,10 @@ export default function RootLayout({
       <body className={`${inter.className} bg-background text-foreground`} suppressHydrationWarning>
         <ThemeProvider>
           <AuthProvider>
-            <LayoutWrapper>{children}</LayoutWrapper>
-            <Toaster />
+            <WorkspaceProvider>
+              <LayoutWrapper>{children}</LayoutWrapper>
+              <Toaster />
+            </WorkspaceProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>
