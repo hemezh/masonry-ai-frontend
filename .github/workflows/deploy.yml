@@ -1,0 +1,57 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main  # or your production branch
+
+env:
+  AWS_REGION: us-east-1  # Change this to your AWS region
+  S3_BUCKET: your-deployment-bucket  # Change this to your S3 bucket name
+  APPLICATION_NAME: masonry-ai-frontend
+  DEPLOYMENT_GROUP: masonry-ai-production  # Change this to your deployment group name
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Create deployment package
+        run: |
+          zip -r deploy.zip . -x "*.git*" "node_modules/*"
+
+      - name: Upload to S3
+        run: |
+          aws s3 cp deploy.zip s3://${{ env.S3_BUCKET }}/deploy-${{ github.sha }}.zip
+
+      - name: Create CodeDeploy Deployment
+        run: |
+          aws deploy create-deployment \
+            --application-name ${{ env.APPLICATION_NAME }} \
+            --deployment-group-name ${{ env.DEPLOYMENT_GROUP }} \
+            --s3-location bucket=${{ env.S3_BUCKET }},bundleType=zip,key=deploy-${{ github.sha }}.zip \
+            --file-exists-behavior OVERWRITE 

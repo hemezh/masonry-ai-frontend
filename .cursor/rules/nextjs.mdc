@@ -3,6 +3,7 @@ description: When writing react components
 globs: 
 ---
 - Always use heroicons
+- Always use PNPM to install new packages
 - Use the existing API client in api-client.tsx
 - If a file gets too large, split it into multiple files
 - If a function or component gets too large, split it into multiple functions or components
