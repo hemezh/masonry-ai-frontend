@@ -151,7 +151,7 @@ export function ResizableSheet({ sheetId, columns: initialColumns, data: initial
   const [isSaving, setIsSaving] = useState(false);
   const dataRef = useRef<HTMLDivElement>(null);
   const footerRef = useRef<HTMLDivElement>(null);
-  const resizeTimeoutRef = useRef<NodeJS.Timeout>();
+  const resizeTimeoutRef = useRef<NodeJS.Timeout>(null);
 
   // Update local state when props change
   useEffect(() => {
