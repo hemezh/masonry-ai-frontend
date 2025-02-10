@@ -1,6 +1,6 @@
 "use client"
 
-import { initializeApp, getApps } from 'firebase/app';
+import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
 import {
   getAuth,
   signInWithEmailAndPassword,
@@ -10,6 +10,7 @@ import {
   signOut,
   onAuthStateChanged,
   User,
+  Auth,
 } from 'firebase/auth';
 
 const firebaseConfig = {
@@ -22,23 +23,31 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-let app;
+let app: FirebaseApp | undefined;
+let auth: Auth | undefined;
+
 if (typeof window !== 'undefined') {
   app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-} else {
-  throw new Error('Firebase initialization failed: Browser environment required');
+  auth = getAuth(app);
 }
-const auth = getAuth(app);
 
 export type AuthUser = User;
 
 export const googleProvider = new GoogleAuthProvider();
 
+// Helper to ensure we're on the client side
+const ensureInitialized = () => {
+  if (!app || !auth) {
+    throw new Error('Firebase not initialized: This method should only be called from the client side');
+  }
+};
+
 export const firebaseAuth = {
   // Sign in with email and password
   signInWithEmail: async (email: string, password: string) => {
+    ensureInitialized();
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth!, email, password);
       return {
         user: userCredential.user,
         token: await userCredential.user.getIdToken(),
@@ -50,8 +59,9 @@ export const firebaseAuth = {
 
   // Sign up with email and password
   signUpWithEmail: async (email: string, password: string) => {
+    ensureInitialized();
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth!, email, password);
       return {
         user: userCredential.user,
         token: await userCredential.user.getIdToken(),
@@ -63,8 +73,9 @@ export const firebaseAuth = {
 
   // Sign in with Google
   signInWithGoogle: async () => {
+    ensureInitialized();
     try {
-      const userCredential = await signInWithPopup(auth, googleProvider);
+      const userCredential = await signInWithPopup(auth!, googleProvider);
       return {
         user: userCredential.user,
         token: await userCredential.user.getIdToken(),
@@ -76,18 +87,23 @@ export const firebaseAuth = {
 
   // Sign out
   signOut: async () => {
+    ensureInitialized();
     try {
-      await signOut(auth);
+      await signOut(auth!);
     } catch (error: any) {
       throw new Error(error.message);
     }
   },
 
   // Get current user
-  getCurrentUser: () => auth.currentUser,
+  getCurrentUser: () => {
+    ensureInitialized();
+    return auth!.currentUser;
+  },
 
   // Subscribe to auth state changes
   onAuthStateChanged: (callback: (user: User | null) => void) => {
-    return onAuthStateChanged(auth, callback);
+    ensureInitialized();
+    return onAuthStateChanged(auth!, callback);
   },
 }; 
