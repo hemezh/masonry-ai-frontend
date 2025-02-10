@@ -1,0 +1,30 @@
+---
+description: When writing react components
+globs: 
+---
+- Always use heroicons
+- Always use PNPM to install new packages
+- Use the existing API client in api-client.tsx
+- If a file gets too large, split it into multiple files
+- If a function or component gets too large, split it into multiple functions or components
+- Always try to reuse existing code first before writing new code
+- Use following project structure
+- src/
+
+src/ - The main source code directory
+app/ - Next.js 13+ app directory using the new App Router
+auth/ - Authentication-related pages
+globals.css - Global CSS styles
+components/ - Reusable React components
+auth/ - Authentication-related components
+chat/ - Chat interface components
+layout/ - Layout components like header, sidebar, and dashboard structure
+sheets/ - Sheet-related components
+task/ - Task management components
+ui/ - Basic UI components (appears to be using shadcn/ui library)
+workflow/ - Workflow-related components
+contexts/ - React Context providers - Contains contexts for authentication, theming, workflow, and workspace state management
+hooks/ - Custom React hooks - Various hooks for API interactions, chat functionality, tasks, and workflows
+lib/ - Utility libraries and configurations - Contains API client setup, Firebase configuration, and utility functions
+services/ - Business logic and API service layers - Separate services for chat, tasks, workflows, and workspace operations
+types/ - TypeScript type definitions - Type definitions for various features like chat, tasks, and workflows

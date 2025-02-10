@@ -13,25 +13,36 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>('dark');
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Check for stored preference, default to dark if not set
-    const storedTheme = localStorage.getItem('theme') as Theme;
-    const initialTheme = storedTheme || 'dark';
-    setTheme(initialTheme);
-    document.documentElement.classList.toggle('dark', initialTheme === 'dark');
-    if (!storedTheme) {
-      localStorage.setItem('theme', initialTheme);
+    setMounted(true);
+    try {
+      const storedTheme = localStorage.getItem('theme') as Theme;
+      if (storedTheme) {
+        setTheme(storedTheme);
+        document.documentElement.classList.toggle('dark', storedTheme === 'dark');
+      }
+    } catch (e) {
+      console.error('Failed to access localStorage:', e);
     }
   }, []);
 
   const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
-    document.documentElement.classList.toggle('dark', newTheme === 'dark');
-    console.log(`[Theme] Switched to ${newTheme} mode`);
+    try {
+      const newTheme = theme === 'light' ? 'dark' : 'light';
+      setTheme(newTheme);
+      localStorage.setItem('theme', newTheme);
+      document.documentElement.classList.toggle('dark', newTheme === 'dark');
+    } catch (e) {
+      console.error('Failed to toggle theme:', e);
+    }
   };
+
+  // Prevent hydration mismatch by not rendering until mounted
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>

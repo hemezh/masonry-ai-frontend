@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "NODE_OPTIONS='--inspect' next dev --turbopack",
+    "dev": "NODE_OPTIONS='--inspect' next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
@@ -53,6 +53,8 @@
     "date-fns": "^3.6.0",
     "elkjs": "^0.9.3",
     "embla-carousel-react": "^8.5.2",
+    "firebase": "^11.3.0",
+    "lucide-react": "^0.475.0",
     "marked": "^15.0.6",
     "next": "15.1.6",
     "next-themes": "^0.4.4",

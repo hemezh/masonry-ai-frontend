@@ -1,72 +1,57 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
 @layer base {
-  :root {
-    /* Light theme */
-    --background: rgb(252, 252, 252);        /* Slightly off-white for softer feel */
-    --foreground: rgb(18, 18, 23);           /* Soft black for better readability */
-    --card: rgb(255, 255, 255);
-    --card-foreground: rgb(18, 18, 23);
-    --popover: rgb(255, 255, 255);
-    --popover-foreground: rgb(18, 18, 23);
-    --primary: rgb(38, 38, 44);              /* Softer black for primary elements */
-    --primary-foreground: rgb(252, 252, 252);
-    --secondary: rgb(248, 248, 250);         /* Subtle gray for secondary elements */
-    --secondary-foreground: rgb(38, 38, 44);
-    --muted: rgb(248, 248, 250);
-    --muted-foreground: rgb(108, 108, 122);  /* Muted text that's still readable */
-    --accent: rgb(248, 248, 250);
-    --accent-foreground: rgb(38, 38, 44);
-    --destructive: rgb(235, 87, 87);         /* Softer red for better harmony */
-    --destructive-foreground: rgb(252, 252, 252);
-    --border: rgb(238, 238, 242);            /* Subtle borders */
-    --input: rgb(238, 238, 242);
-    --ring: rgb(38, 38, 44);
-    
-    /* Modern, muted chart colors */
-    --chart-1: rgb(86, 143, 191);           /* Soft blue */
-    --chart-2: rgb(145, 184, 149);          /* Muted green */
-    --chart-3: rgb(191, 147, 131);          /* Subdued terracotta */
-    --chart-4: rgb(170, 172, 191);          /* Soft purple-gray */
-    --chart-5: rgb(191, 165, 132);          /* Warm beige */
-    
-    --radius: 0.5rem;
-  }
 
   body {
     @apply antialiased;
   }
-
-  .dark {
-    /* Dark theme */
-    --background: rgb(18, 18, 23);           /* Deep, rich background */
-    --foreground: rgb(242, 242, 247);        /* Soft white text */
-    --card: hsl(18, 18, 23);
-    --card-foreground: rgb(242, 242, 247);
-    --popover: rgb(18, 18, 23);
-    --popover-foreground: rgb(242, 242, 247);
-    --primary: rgb(242, 242, 247);
-    --primary-foreground: rgb(18, 18, 23);
-    --secondary: rgb(28, 28, 33);        /* Subtle contrast for secondary elements */
-    --secondary-foreground: rgb(242, 242, 247);
-    --muted: rgb(44, 44, 51);
-    --muted-foreground: rgb(167, 167, 177);  /* More visible muted text */
-    --accent: rgb(44, 44, 51);
-    --accent-foreground: rgb(242, 242, 247);
-    --destructive: rgb(246, 87, 87);         /* Brighter red for dark mode visibility */
-    --destructive-foreground: rgb(242, 242, 247);
-    --border: rgb(61, 61, 70);
-    --input: rgb(18, 18, 23);
-    --ring: rgb(242, 242, 247);
-    
-    /* Dark mode chart colors - slightly brightened for contrast */
-    --chart-1: rgb(106, 163, 211);          /* Brighter blue */
-    --chart-2: rgb(165, 204, 169);          /* Lighter green */
-    --chart-3: rgb(211, 167, 151);          /* Lighter terracotta */
-    --chart-4: rgb(190, 192, 211);          /* Lighter purple-gray */
-    --chart-5: rgb(211, 185, 152);          /* Lighter beige */
+  :root  {
+    --background: 241 23% 97%;
+    --foreground: 241 5% 10%;
+    --card: 241 28% 99%;
+    --card-foreground: 241 5% 15%;
+    --popover: 241 28% 95%;
+    --popover-foreground: 241 95% 10%;
+    --primary: 241 54% 54%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 241 20% 94%;
+    --secondary-foreground: 0 0% 0%;
+    --muted: 241 20% 90%;
+    --muted-foreground: 241 5% 40%;
+    --accent: 241 5% 96%;
+    --accent-foreground: 241 5% 15%;
+    --destructive: 0 50% 50%;
+    --destructive-foreground: 241 5% 92%;
+    --border: 241 28% 90%;
+    --input: 241 28% 50%;
+    --ring: 241 54% 54%;
+    --radius: .8rem;
   }
+  .dark {
+    --background: 245 37% 10%;
+    --foreground: 245 5% 90%;
+    --card: 245 20% 16%;
+    --card-foreground: 245 5% 90%;
+    --popover: 245 37% 5%;
+    --popover-foreground: 245 5% 90%;
+    --primary: 245 80% 57%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 245 17% 20%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 246 20% 30%;
+    --muted-foreground: 245 5% 60%;
+    --accent: 246 20% 30%;
+    --accent-foreground: 245 5% 90%;
+    --destructive: 0 50% 30%;
+    --destructive-foreground: 245 5% 90%;
+    --border: 245 30% 26%;
+    --input: 245 30% 26%;
+    --ring: 245 80% 57%;
+    --radius: 1rem;
+   }
+  
 }
 
 @layer utilities {

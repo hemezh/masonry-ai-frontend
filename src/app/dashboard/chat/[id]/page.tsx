@@ -275,7 +275,7 @@ function WorkflowChatPageContent() {
     workflowSection: showWorkflow 
       ? cn(
           "flex-1 rounded-lg overflow-hidden shadow-sm",
-          "bg-muted/50",
+          "bg-muted",
           "border border-border"
         )
       : "",
