@@ -25,6 +25,14 @@ interface SortableColumnProps {
   children: React.ReactNode;
 }
 
+interface SortableRowProps {
+  row: Record<string, any>;
+  rowIndex: number;
+  columns: Column[];
+  updateCell: (rowIndex: number, columnId: string, value: string) => void;
+  totalWidth: number;
+}
+
 function SortableColumn({ column, onResize, children }: SortableColumnProps) {
   const {
     attributes,
@@ -71,7 +79,7 @@ function SortableColumn({ column, onResize, children }: SortableColumnProps) {
   );
 }
 
-function SortableRow({ row, rowIndex, columns, updateCell, totalWidth }: any) {
+function SortableRow({ row, rowIndex, columns, updateCell, totalWidth }: SortableRowProps) {
   const {
     attributes,
     listeners,
@@ -206,7 +214,7 @@ export function ResizableSheet({ columns: initialColumns, data: initialData, onC
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
-    if (typeof active.id === 'string' && active.id.startsWith('col-')) {
+    if (typeof active.id === 'string' && typeof over.id === 'string' && active.id.startsWith('col-')) {
       // Handle column reordering
       const oldIndex = columnOrder.indexOf(active.id);
       const newIndex = columnOrder.indexOf(over.id);

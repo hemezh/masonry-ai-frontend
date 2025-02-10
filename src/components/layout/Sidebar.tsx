@@ -1,28 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { HomeIcon, ChatBubbleLeftRightIcon, Cog6ToothIcon, QuestionMarkCircleIcon, UserIcon, ArrowRightIcon, PlusIcon, ChevronUpDownIcon, ClipboardDocumentListIcon, SunIcon, MoonIcon, TableCellsIcon } from '@heroicons/react/24/outline';
-import Link from 'next/link';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { ChevronUpIcon } from '@heroicons/react/24/solid';
-import { usePathname } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { useRouter } from 'next/navigation';
-import { useTheme } from '@/contexts/theme-context';
+import { HomeIcon, ChatBubbleLeftRightIcon, ClipboardDocumentListIcon, TableCellsIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '@/contexts/auth-context';
 import { useWorkspace } from '@/contexts/workspace-context';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { cn } from '@/lib/utils';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { WorkspaceSwitcher } from '@/components/layout/workspace/workspace-switcher';
 import { NavigationMenu } from '@/components/layout/navigation/navigation-menu';
 import { UserMenu } from '@/components/layout/user/user-menu';
@@ -41,9 +22,6 @@ const navigation = [
 ];
 
 export default function Sidebar() {
-    const pathname = usePathname();
-    const router = useRouter();
-    const { theme, toggleTheme } = useTheme();
     const { user, signOut } = useAuth();
     const { workspaces, currentWorkspace, setCurrentWorkspace, createWorkspace, isLoading } = useWorkspace();
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);

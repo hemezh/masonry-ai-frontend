@@ -123,7 +123,6 @@ function WorkflowChatPageContent() {
 
   // Hook initialization with error handling
   const {
-    isChatLoading,
     sendMessage,
     getChat,
   } = useChat({
@@ -131,7 +130,9 @@ function WorkflowChatPageContent() {
   });
 
   const { getWorkflow } = useWorkflow({
-    onError: useCallback((error: Error) => {}, [])
+    onError: useCallback((error: Error) => {
+      console.error('Workflow error:', error);
+    }, [])
   });
 
   useEffect(() => {}, [messages]);
@@ -245,7 +246,7 @@ function WorkflowChatPageContent() {
       handleSendMessage(initialPrompt);
       setHasHandledInitialPrompt(true);
     }
-  }, [initialPrompt, hasHandledInitialPrompt, isInitialLoad, handleSendMessage]);
+  }, [initialPrompt, hasHandledInitialPrompt, isInitialLoad, handleSendMessage, hasHandledInitialPrompt]);
 
   // Workflow visibility control
   const showWorkflow = workflowState.nodes.length > 0;

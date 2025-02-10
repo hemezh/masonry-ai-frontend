@@ -48,61 +48,15 @@ export default function SheetsPage() {
   };
 
   return (
-    <div className="p-8">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">Sheets</h1>
-          <p className="text-sm text-muted-foreground">Create and manage your data sheets</p>
+    <div className="container mx-auto p-6">
+      <h1 className="text-2xl font-bold mb-6">Sheets</h1>
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="p-6 bg-card rounded-lg border shadow-sm">
+          <h2 className="text-lg font-semibold mb-2">Coming Soon</h2>
+          <p className="text-muted-foreground">
+            Sheets functionality will be available soon. Stay tuned for updates!
+          </p>
         </div>
-        <Button onClick={() => router.push('/dashboard/sheets/new')}>
-          <PlusIcon className="h-4 w-4 mr-2" />
-          New Sheet
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {/* New Sheet Card */}
-        <button
-          onClick={() => router.push('/dashboard/sheets/new')}
-          className="h-[200px] rounded-lg border border-dashed border-border hover:border-primary/50 bg-background p-6 flex flex-col items-center justify-center gap-4 transition-colors group"
-        >
-          <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-            <PlusIcon className="h-6 w-6 text-primary" />
-          </div>
-          <div className="text-center">
-            <h3 className="font-medium text-foreground">Create New Sheet</h3>
-            <p className="text-sm text-muted-foreground">Start with a blank sheet</p>
-          </div>
-        </button>
-
-        {/* Existing Sheets */}
-        {sheets.map((sheet) => (
-          <button
-            key={sheet.id}
-            onClick={() => router.push(`/dashboard/sheets/${sheet.id}`)}
-            className="group relative h-[200px] rounded-lg border bg-card p-6 text-left shadow-sm hover:shadow-md transition-shadow"
-          >
-            <div className="flex items-start justify-between">
-              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <TableCellsIcon className="h-6 w-6 text-primary" />
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {sheet.rowCount} rows
-              </div>
-            </div>
-            <div className="mt-4">
-              <h3 className="font-medium text-foreground group-hover:text-primary transition-colors">
-                {sheet.name}
-              </h3>
-              <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
-                {sheet.description}
-              </p>
-            </div>
-            <div className="absolute bottom-6 left-6 text-xs text-muted-foreground">
-              Updated {formatDate(sheet.updatedAt)}
-            </div>
-          </button>
-        ))}
       </div>
     </div>
   );

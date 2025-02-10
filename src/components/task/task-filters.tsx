@@ -17,22 +17,22 @@ export function TaskFilters({ statusFilter, onFilterChange }: TaskFiltersProps) 
                 All
             </Button>
             <Button 
-                variant={statusFilter === 'draft' ? 'default' : 'secondary'}
-                onClick={() => onFilterChange('draft')}
+                variant={statusFilter === 'Draft' ? 'default' : 'secondary'}
+                onClick={() => onFilterChange('Draft')}
                 size='sm'
             >
                 Draft
             </Button>
             <Button 
-                variant={statusFilter === 'active' ? 'default' : 'secondary'}
-                onClick={() => onFilterChange('active')}
+                variant={statusFilter === 'Active' ? 'default' : 'secondary'}
+                onClick={() => onFilterChange('Active')}
                 size='sm'
             >
                 Active
             </Button>
             <Button 
-                variant={statusFilter === 'archived' ? 'default' : 'secondary'}
-                onClick={() => onFilterChange('archived')}
+                variant={statusFilter === 'Archived' ? 'default' : 'secondary'}
+                onClick={() => onFilterChange('Archived')}
                 size='sm'
             >
                 Archived
