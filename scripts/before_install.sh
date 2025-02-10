@@ -9,9 +9,14 @@ if ! command -v node &> /dev/null; then
     sudo yum install -y nodejs
 fi
 
+# Install pnpm globally if not installed
+if ! command -v pnpm &> /dev/null; then
+    sudo npm install -g pnpm
+fi
+
 # Install PM2 globally if not installed
 if ! command -v pm2 &> /dev/null; then
-    sudo npm install -g pm2
+    sudo pnpm add -g pm2
 fi
 
 # Create nodejs user and group if they don't exist
