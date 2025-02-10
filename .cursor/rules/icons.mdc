@@ -1,5 +1,5 @@
 ---
-description: When generating or editing the components which require an icon.
-globs: 
+description: When generating or editing the components 
+globs: *.tsx
 ---
-Always use hero icons and not lucid icons because that's what I follow for this project.
+Always use heroicons

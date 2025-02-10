@@ -22,7 +22,7 @@ export const ChatInputContainer = memo(({ onSendMessage, isLoading }: ChatInputC
   }, []);
 
   return (
-    <div className="sticky bottom py-4">
+    <div className="py-4 bg-card">
       <ChatInput
         prompt={prompt}
         hasStarted={true}

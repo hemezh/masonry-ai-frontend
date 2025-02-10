@@ -1,7 +1,9 @@
 import './globals.css';
 import { Inter } from 'next/font/google';
-import DashboardLayout from '@/components/layout/DashboardLayout';
 import { ThemeProvider } from '@/contexts/theme-context';
+import { AuthProvider } from '@/contexts/auth-context';
+import { Toaster } from '@/components/ui/toaster';
+import LayoutWrapper from '@/components/layout/layout-wrapper';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -11,20 +13,26 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className="dark">
       <head>
-        <script dangerouslySetInnerHTML={{
-          __html: `
-            (function() {
-              const theme = localStorage.getItem('theme') || 'dark';
-              document.documentElement.classList.toggle('dark', theme === 'dark');
-            })();
-          `
-        }} />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                if (localStorage.getItem('theme') === 'light') {
+                  document.documentElement.classList.remove('dark');
+                }
+              } catch (e) {}
+            `,
+          }}
+        />
       </head>
-      <body className={inter.className} suppressHydrationWarning>
+      <body className={`${inter.className} bg-background text-foreground`} suppressHydrationWarning>
         <ThemeProvider>
-          <DashboardLayout>{children}</DashboardLayout>
+          <AuthProvider>
+            <LayoutWrapper>{children}</LayoutWrapper>
+            <Toaster />
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>
