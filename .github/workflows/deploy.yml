@@ -10,6 +10,7 @@ env:
   S3_BUCKET: your-deployment-bucket  # Change this to your S3 bucket name
   APPLICATION_NAME: masonry-ai-frontend
   DEPLOYMENT_GROUP: masonry-ai-production  # Change this to your deployment group name
+  PNPM_VERSION: 8.15.9  # Specify exact version to match your local environment
 
 jobs:
   deploy:
@@ -30,7 +31,7 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@v2
         with:
-          version: 8
+          version: ${{ env.PNPM_VERSION }}
           run_install: false
 
       - name: Get pnpm store directory
@@ -47,7 +48,9 @@ jobs:
             ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: |
+          pnpm install --no-frozen-lockfile
+          pnpm store prune
 
       - name: Build application
         run: pnpm run build
@@ -60,7 +63,7 @@ jobs:
 
       - name: Create deployment package
         run: |
-          zip -r deploy.zip . -x "*.git*" "node_modules/*"
+          zip -r deploy.zip . -x "*.git*" "node_modules/*" ".next/cache/*"
 
       - name: Upload to S3
         run: |
