@@ -6,6 +6,8 @@ import { SortableContext, horizontalListSortingStrategy, verticalListSortingStra
 import { CSS } from '@dnd-kit/utilities';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { tablesApi, type ColumnType } from '@/lib/api/tables';
+import { AddColumnDialog } from './add-column-dialog';
+import { useToast } from '@/components/ui/use-toast';
 import 'react-resizable/css/styles.css';
 import debounce from 'lodash/debounce';
 
@@ -37,6 +39,7 @@ interface SortableRowProps {
   columns: Column[];
   updateCell: (rowIndex: number, columnId: string, value: string) => void;
   totalWidth: number;
+  errors: Record<string, Record<string, string>>;
 }
 
 function SortableColumn({ column, onResize, children }: SortableColumnProps) {
@@ -63,6 +66,11 @@ function SortableColumn({ column, onResize, children }: SortableColumnProps) {
         minConstraints={[column.minWidth || 100, 40]}
         onResize={(e, data) => onResize(data.size.width)}
         draggableOpts={{ enableUserSelectHack: false }}
+        handle={
+          <div className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize group-hover:bg-primary/10 transition-colors z-10 flex items-center justify-center">
+            <div className="w-px h-4 bg-border group-hover:bg-primary/25 transition-colors" />
+          </div>
+        }
         className="relative"
       >
         <div
@@ -70,11 +78,12 @@ function SortableColumn({ column, onResize, children }: SortableColumnProps) {
           style={{ 
             width: column.width,
             borderRight: '1px solid var(--border-color, #E5E7EB)',
-            borderBottom: '1px solid var(--border-color, #E5E7EB)'
+            borderBottom: '2px solid var(--border-color, #E5E7EB)',
+            background: 'hsl(var(--background))'
           }}
         >
           <div 
-            className="flex items-center h-full cursor-move relative"
+            className="flex items-center h-full w-full cursor-move relative hover:bg-accent/50 transition-colors"
             {...listeners}
           >
             {children}
@@ -85,7 +94,7 @@ function SortableColumn({ column, onResize, children }: SortableColumnProps) {
   );
 }
 
-function SortableRow({ row, rowIndex, columns, updateCell, totalWidth }: SortableRowProps) {
+function SortableRow({ row, rowIndex, columns, updateCell, totalWidth, errors }: SortableRowProps) {
   const {
     attributes,
     listeners,
@@ -105,34 +114,42 @@ function SortableRow({ row, rowIndex, columns, updateCell, totalWidth }: Sortabl
     <div ref={setNodeRef} style={style} {...attributes}>
       <div className="flex min-h-[40px] relative group">
         <div 
-          className="flex flex-1 border-b cursor-move" 
+          className="flex flex-1 border-b hover:bg-accent/5 transition-colors bg-white" 
           style={{ width: totalWidth }}
           {...listeners}
         >
-          {columns.map((column: Column) => (
-            <div
-              key={column.id}
-              className="relative flex-shrink-0"
-              style={{ 
-                width: column.width,
-                borderRight: '1px solid var(--border-color, #E5E7EB)'
-              }}
-            >
-              <div className="h-full relative">
-                <input
-                  type="text"
-                  value={row[column.id] || ''}
-                  onChange={(e) => updateCell(rowIndex, column.id, e.target.value)}
-                  className="absolute inset-0 bg-background border-none focus:outline-none focus:ring-0 focus:bg-background hover:bg-muted/30 rounded-none px-4 py-2 w-full focus:z-30 transition-colors text-foreground"
-                />
-                <span className="pointer-events-none px-4 py-2 text-foreground">
-                  {row[column.id] || ''}
-                </span>
+          {columns.map((column: Column) => {
+            const hasError = errors[rowIndex.toString()]?.[column.id];
+            return (
+              <div
+                key={column.id}
+                className="relative flex-shrink-0"
+                style={{ 
+                  width: column.width,
+                  borderRight: '1px solid var(--border-color, #E5E7EB)'
+                }}
+              >
+                <div className="h-full relative">
+                  {hasError && (
+                    <div className="absolute -top-5 left-0 text-xs text-white bg-red-500 px-2 py-1 z-50 whitespace-nowrap shadow-sm border border-red-400 rounded-md">
+                      {errors[rowIndex.toString()][column.id]}
+                    </div>
+                  )}
+                  <div className={`absolute inset-0 pointer-events-none border-2 transition-colors rounded-sm ${
+                    hasError ? 'border-red-500/50' : 'border-transparent'
+                  }`} />
+                  <input
+                    type="text"
+                    value={row[column.id] || ''}
+                    onChange={(e) => updateCell(rowIndex, column.id, e.target.value)}
+                    className={`absolute inset-0 bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-primary/10 hover:bg-accent/5 rounded-none px-4 py-2 w-full focus:z-30 text-foreground`}
+                  />
+                </div>
               </div>
-            </div>
-          ))}
-          {/* Empty space to align with header */}
-          <div className="border-r min-w-[100px] flex-1" />
+            );
+          })}
+          {/* Empty space */}
+          <div className="border-r min-w-[100px] flex-1 bg-white" />
         </div>
       </div>
     </div>
@@ -141,6 +158,7 @@ function SortableRow({ row, rowIndex, columns, updateCell, totalWidth }: Sortabl
 
 export function ResizableTable({ workspaceId, tableId: tableId, columns: initialColumns, data: initialData, onColumnResize }: ResizableTableProps) {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [columns, setColumns] = useState<Column[]>(initialColumns);
   const [columnOrder, setColumnOrder] = useState(() => 
     initialColumns.map(col => col.id.toString())
@@ -150,9 +168,13 @@ export function ResizableTable({ workspaceId, tableId: tableId, columns: initial
     initialColumns.reduce((sum, col) => sum + col.width, 0) + 100
   );
   const [isSaving, setIsSaving] = useState(false);
+  const [isAddColumnDialogOpen, setIsAddColumnDialogOpen] = useState(false);
   const dataRef = useRef<HTMLDivElement>(null);
   const footerRef = useRef<HTMLDivElement>(null);
   const resizeTimeoutRef = useRef<NodeJS.Timeout>(null);
+  const updateTimeoutRef = useRef<NodeJS.Timeout>(null);
+  const [errors, setErrors] = useState<Record<string, Record<string, string>>>({});
+  const pendingUpdatesRef = useRef<Record<number, Record<string, any>>>({});
 
   // Update local state when props change
   useEffect(() => {
@@ -199,9 +221,58 @@ export function ResizableTable({ workspaceId, tableId: tableId, columns: initial
   const updateTableDataMutation = useMutation({
     mutationFn: ({ dataId, data }: { dataId: number; data: Record<string, any> }) => 
       tablesApi.updateTableData(workspaceId, tableId, dataId, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['table-data', tableId] });
+    onMutate: async ({ dataId, data }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['table-data', tableId] });
+
+      // Snapshot the previous value
+      const previousData = queryClient.getQueryData(['table-data', tableId]);
+
+      // Optimistically update to the new value
+      queryClient.setQueryData(['table-data', tableId], (old: any[]) => {
+        return old?.map(row => {
+          if (row.id === dataId) {
+            return {
+              ...row,
+              data: Object.entries(data).reduce((acc, [key, value]) => {
+                acc[`${key}_${columns.find(col => col.id === key)?.type || 's'}`] = value;
+                return acc;
+              }, {} as Record<string, any>)
+            };
+          }
+          return row;
+        });
+      });
+
+      // Return a context object with the snapshotted value
+      return { previousData };
     },
+    onError: (err, variables, context) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      if (context?.previousData) {
+        queryClient.setQueryData(['table-data', tableId], context.previousData);
+      }
+      setIsSaving(false);
+      toast({
+        title: 'Error',
+        description: 'Failed to save changes',
+        variant: 'destructive',
+      });
+      console.error('Error updating table data:', err);
+    },
+    onSuccess: () => {
+      setIsSaving(false);
+      toast({
+        title: 'Success',
+        description: 'Changes saved successfully',
+      });
+    },
+    onSettled: () => {
+      // Only refetch if there was an error
+      if (updateTableDataMutation.isError) {
+        queryClient.invalidateQueries({ queryKey: ['table-data', tableId] });
+      }
+    }
   });
 
   const createTableDataMutation = useMutation({
@@ -209,6 +280,18 @@ export function ResizableTable({ workspaceId, tableId: tableId, columns: initial
       tablesApi.createTableData(workspaceId, tableId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['table-data', tableId] });
+      toast({
+        title: 'Success',
+        description: 'Row added successfully',
+      });
+    },
+    onError: (error: any) => {
+      console.error('Error adding row:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to add row',
+        variant: 'destructive',
+      });
     },
   });
 
@@ -218,6 +301,28 @@ export function ResizableTable({ workspaceId, tableId: tableId, columns: initial
       tablesApi.addColumn(workspaceId, tableId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['table', tableId] });
+      setIsAddColumnDialogOpen(false);
+      toast({
+        title: 'Success',
+        description: 'Column added successfully',
+      });
+    },
+    onError: (error: any) => {
+      console.error('Error adding column:', error);
+      let errorMessage = 'Failed to add column';
+      
+      // Handle validation errors
+      if (error.message && error.message.includes('invalid_type')) {
+        errorMessage = 'Invalid column data format';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive',
+      });
     },
   });
 
@@ -258,41 +363,124 @@ export function ResizableTable({ workspaceId, tableId: tableId, columns: initial
     [updateColumnWidthMutation]
   );
 
-  const addColumn = () => {
-    addColumnMutation.mutate({
-      name: 'New Column',
-      type: 's',  // Always string type by default
-    });
+  // Add validation function
+  const validateValue = (value: string, type: ColumnType): { isValid: boolean; error?: string; convertedValue?: any } => {
+    if (!value) return { isValid: true, convertedValue: null }; // Allow empty values
+
+    switch (type) {
+      case 'i': // integer
+        const num = Number(value);
+        if (isNaN(num) || !Number.isInteger(num)) {
+          return { isValid: false, error: 'Must be an integer' };
+        }
+        return { isValid: true, convertedValue: num };
+
+      case 'f': // float
+        const float = Number(value);
+        if (isNaN(float)) {
+          return { isValid: false, error: 'Must be a number' };
+        }
+        return { isValid: true, convertedValue: float };
+
+      case 'd': // date
+        const date = new Date(value);
+        if (date.toString() === 'Invalid Date') {
+          return { isValid: false, error: 'Must be a valid date' };
+        }
+        return { isValid: true, convertedValue: date.toISOString() };
+
+      case 's': // string
+      default:
+        return { isValid: true, convertedValue: value };
+    }
+  };
+
+  const handleAddColumn = (data: { name: string; type: ColumnType; description?: string }) => {
+    addColumnMutation.mutate(data);
   };
 
   const addRow = () => {
-    const newRow: Record<string, string> = {};
-    columns.forEach((column: Column) => {
-      // Just use column ID as the key
-      newRow[column.id] = '';
-    });
-    createTableDataMutation.mutate(newRow);
+    // Create an empty row without any initial values
+    createTableDataMutation.mutate({});
   };
+
+  const debouncedSaveUpdates = useCallback(() => {
+    const updates = pendingUpdatesRef.current;
+    pendingUpdatesRef.current = {};
+
+    Object.entries(updates).forEach(([dataId, formattedData]) => {
+      updateTableDataMutation.mutate({
+        dataId: parseInt(dataId),
+        data: formattedData,
+      });
+    });
+  }, [updateTableDataMutation]);
 
   const updateCell = (rowIndex: number, columnId: string, value: string) => {
     const newData = [...data];
     const column = columns.find(col => col.id === columnId);
     if (!column) return;
 
-    // Just use column ID as the key
+    // Always update the display value first for immediate feedback
     newData[rowIndex] = {
       ...newData[rowIndex],
       [columnId]: value
     };
     setData(newData);
 
-    // Get the data ID from the row
-    const dataId = (newData[rowIndex] as any).id;
-    if (dataId) {
-      updateTableDataMutation.mutate({
-        dataId,
-        data: newData[rowIndex],
-      });
+    // Validate the value
+    const validation = validateValue(value, column.type);
+    
+    // Update errors state
+    setErrors(prev => ({
+      ...prev,
+      [rowIndex.toString()]: {
+        ...prev[rowIndex.toString()],
+        [columnId]: validation.error || ''
+      }
+    }));
+
+    // Only queue update if valid
+    if (validation.isValid) {
+      const dataId = (newData[rowIndex] as any).id;
+      if (dataId) {
+        // Get or initialize the pending updates for this row
+        const currentUpdates = pendingUpdatesRef.current[dataId] || {};
+        
+        // Add the updated field with converted value
+        const actualColumnId = parseInt(column.id);
+        currentUpdates[actualColumnId.toString()] = validation.convertedValue;
+
+        // Add other fields that are not being updated
+        Object.entries(newData[rowIndex]).forEach(([key, val]) => {
+          if (key !== columnId && key !== 'id') {
+            const col = columns.find(c => c.id === key);
+            if (col) {
+              const colId = parseInt(col.id);
+              if (!currentUpdates[colId.toString()]) {
+                // Convert existing values too
+                const existingValidation = validateValue(val, col.type);
+                currentUpdates[colId.toString()] = existingValidation.convertedValue;
+              }
+            }
+          }
+        });
+
+        // Store the updates
+        pendingUpdatesRef.current[dataId] = currentUpdates;
+
+        // Clear any existing timeout
+        if (updateTimeoutRef.current) {
+          clearTimeout(updateTimeoutRef.current);
+        }
+
+        setIsSaving(true);
+
+        // Set new timeout
+        updateTimeoutRef.current = setTimeout(() => {
+          debouncedSaveUpdates();
+        }, 1000);
+      }
     }
   };
 
@@ -334,18 +522,40 @@ export function ResizableTable({ workspaceId, tableId: tableId, columns: initial
   );
 
   return (
-    <div className="relative h-[calc(100vh-12rem)] p-1">
+    <div className="relative h-[calc(100vh-12rem)] p-1 rounded-lg overflow-hidden border shadow-sm">
       {isSaving && (
-        <div className="absolute top-0 right-0 m-4 px-3 py-1 bg-green-100 text-green-600 text-sm rounded-md font-medium">
+        <div className="absolute top-4 right-4 px-3 py-1.5 bg-emerald-50 text-emerald-600 text-sm rounded-md font-medium border border-emerald-200/50 shadow-sm">
           Saving changes...
         </div>
       )}
-      <div className="absolute inset-0 border rounded-lg flex flex-col overflow-hidden bg-background shadow-md">
-        <div className="flex-1 overflow-auto">
+      <div className="absolute inset-0 flex flex-col overflow-hidden bg-white">
+        <div className="flex-1 overflow-auto scrollbar-thin scrollbar-thumb-border hover:scrollbar-thumb-border/60 [scrollbar-gutter:stable]">
+          <style jsx global>{`
+            .scrollbar-thin {
+              scrollbar-width: thin;
+            }
+            .scrollbar-thin::-webkit-scrollbar {
+              width: 8px;
+              height: 8px;
+            }
+            .scrollbar-thin::-webkit-scrollbar-track {
+              background: transparent;
+            }
+            .scrollbar-thin::-webkit-scrollbar-thumb {
+              background: transparent;
+              border-radius: 4px;
+            }
+            .scrollbar-thin:hover::-webkit-scrollbar-thumb {
+              background: hsl(var(--border));
+            }
+            .scrollbar-thin::-webkit-scrollbar-corner {
+              background: transparent;
+            }
+          `}</style>
           <div className="min-w-full">
             {/* Header row */}
-            <div className="flex min-h-[40px] relative">
-              <div className="flex flex-1 bg-card border-b border-border" style={{ width: totalWidth }}>
+            <div className="flex min-h-[40px] sticky top-0 z-10  shadow-sm">
+              <div className="flex flex-1 " style={{ width: totalWidth, background: 'hsl(var(--background))' }}>
                 {columns.map((column: Column) => (
                   <SortableColumn
                     key={column.id}
@@ -370,7 +580,7 @@ export function ResizableTable({ workspaceId, tableId: tableId, columns: initial
                       }
                     }}
                   >
-                    <div className="flex items-center h-full cursor-col-resize relative">
+                    <div className="flex items-center h-full w-full cursor-col-resize relative group">
                       <input
                         type="text"
                         value={column.header}
@@ -384,24 +594,26 @@ export function ResizableTable({ workspaceId, tableId: tableId, columns: initial
                             name: e.target.value,
                           });
                         }}
-                        className="absolute inset-0 bg-card border-none focus:outline-none focus:ring-0 focus:bg-background rounded-none px-4 py-2 w-full focus:z-30 transition-colors text-card-foreground"
+                        className="absolute inset-0 bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-primary/10 rounded-none px-4 py-2 w-full focus:z-30 text-foreground font-medium"
                       />
-                      <span className="pointer-events-none px-4 font-medium text-card-foreground">
+                      <span className="pointer-events-none px-4 py-2 w-full truncate font-medium text-foreground">
                         {column.header}
                       </span>
+                      <div className="absolute right-0 top-1/2 -translate-y-1/2 w-px h-4/5 bg-border opacity-50 group-hover:opacity-100" />
                     </div>
                   </SortableColumn>
                 ))}
                 {/* Add Column button */}
                 <div 
-                  className="flex items-center justify-end px-2 border-r border-b border-border bg-card min-w-[100px] flex-1"
+                  className="flex items-center justify-end px-2 border-r border-b-2 border-border min-w-[100px] flex-1"
+                  style={{ background: 'hsl(var(--background))' }}
                 >
                   <button
-                    onClick={addColumn}
-                    className="p-1 text-muted-foreground hover:text-primary transition-colors"
+                    onClick={() => setIsAddColumnDialogOpen(true)}
+                    className="p-1.5 text-muted-foreground hover:text-primary hover:bg-background/80 rounded-md transition-colors"
                     title="Add Column"
                   >
-                    <PlusIcon className="h-5 w-5" />
+                    <PlusIcon className="h-4 w-4" />
                   </button>
                 </div>
               </div>
@@ -411,30 +623,41 @@ export function ResizableTable({ workspaceId, tableId: tableId, columns: initial
             {data.map((row, rowIndex) => (
               <div key={rowIndex} className="flex min-h-[40px] relative group">
                 <div 
-                  className="flex flex-1 border-b border-border hover:bg-muted/20"
+                  className="flex flex-1 border-b hover:bg-accent/5 transition-colors bg-white" 
                   style={{ width: totalWidth }}
                 >
-                  {columns.map((column: Column) => (
-                    <div
-                      key={column.id}
-                      className="relative flex-shrink-0 border-r border-border"
-                      style={{ width: column.width }}
-                    >
-                      <div className="h-full relative">
-                        <input
-                          type="text"
-                          value={row[column.id] || ''}
-                          onChange={(e) => updateCell(rowIndex, column.id, e.target.value)}
-                          className="absolute inset-0 bg-background border-none focus:outline-none focus:ring-0 focus:bg-background hover:bg-muted/30 rounded-none px-4 py-2 w-full focus:z-30 transition-colors text-foreground"
-                        />
-                        <span className="pointer-events-none px-4 py-2 text-foreground">
-                          {row[column.id] || ''}
-                        </span>
+                  {columns.map((column: Column) => {
+                    const hasError = errors[rowIndex.toString()]?.[column.id];
+                    return (
+                      <div
+                        key={column.id}
+                        className="relative flex-shrink-0"
+                        style={{ 
+                          width: column.width,
+                          borderRight: '1px solid var(--border-color, #E5E7EB)'
+                        }}
+                      >
+                        <div className="h-full relative">
+                          {hasError && (
+                            <div className="absolute -top-5 left-0 text-xs text-white bg-red-500 px-2 py-1 z-50 whitespace-nowrap shadow-sm border border-red-400 rounded-md">
+                              {errors[rowIndex.toString()][column.id]}
+                            </div>
+                          )}
+                          <div className={`absolute inset-0 pointer-events-none border-2 transition-colors rounded-sm ${
+                            hasError ? 'border-red-500/50' : 'border-transparent'
+                          }`} />
+                          <input
+                            type="text"
+                            value={row[column.id] || ''}
+                            onChange={(e) => updateCell(rowIndex, column.id, e.target.value)}
+                            className={`absolute inset-0 bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-primary/10 hover:bg-accent/5 rounded-none px-4 py-2 w-full focus:z-30 text-foreground`}
+                          />
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                   {/* Empty space */}
-                  <div className="border-r border-border min-w-[100px] flex-1" />
+                  <div className="border-r min-w-[100px] flex-1 bg-white" />
                 </div>
               </div>
             ))}
@@ -443,19 +666,25 @@ export function ResizableTable({ workspaceId, tableId: tableId, columns: initial
 
         {/* Add Row button */}
         <div className="flex-shrink-0">
-          <div className="flex justify-left border-t border-border bg-card p-2 min-w-full">
-            <div>
-              <button
-                onClick={addRow}
-                className="flex items-center text-muted-foreground hover:text-primary transition-colors"
-                title="Add Row"
-              >
-                <PlusIcon className="h-5 w-5" />
-              </button>
-            </div>
+          <div className="flex justify-left border-t border-border p-2 min-w-full" style={{ background: 'hsl(var(--background))' }}>
+            <button
+              onClick={addRow}
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary px-2 py-1 hover:bg-background/80 rounded-md transition-colors"
+              title="Add Row"
+            >
+              <PlusIcon className="h-4 w-4" />
+              <span>Add row</span>
+            </button>
           </div>
         </div>
       </div>
+
+      <AddColumnDialog
+        isOpen={isAddColumnDialogOpen}
+        onOpenChange={setIsAddColumnDialogOpen}
+        onSubmit={handleAddColumn}
+        isLoading={addColumnMutation.isPending}
+      />
     </div>
   );
 } 

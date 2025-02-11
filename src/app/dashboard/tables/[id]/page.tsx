@@ -47,7 +47,9 @@ export default function TablePage({ params }: { params: Promise<PageParams> }) {
   // Convert table data to ResizableTable format
   const data = tableData?.map(row => {
     // Convert TypedColumnKeys back to simple column IDs
-    const formattedRow: Record<string, any> = {};
+    const formattedRow: Record<string, any> = {
+      id: row.id, // Preserve the row ID
+    };
     const rowData = row.data as Record<string, any>;
     Object.entries(rowData).forEach(([key, value]) => {
       const [id] = key.split('_'); // Split "1_s" to get just "1"
