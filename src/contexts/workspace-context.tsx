@@ -48,15 +48,27 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
             const workspaceList = await workspaceService.listWorkspaces();
             setWorkspaces(workspaceList);
             
-            // Set first workspace as current if none selected
-            if (!currentWorkspace && workspaceList.length > 0) {
-                setCurrentWorkspace(workspaceList[0]);
+            // Find personal workspace or first workspace as default
+            const personalWorkspace = workspaceList.find(w => w.is_personal);
+            const savedWorkspaceId = localStorage.getItem('selectedWorkspaceId');
+            const savedWorkspace = workspaceList.find(w => w.id === savedWorkspaceId);
+            
+            // Set workspace priority: saved > personal > first available
+            const defaultWorkspace = savedWorkspace || personalWorkspace || workspaceList[0];
+            if (defaultWorkspace && !currentWorkspace) {
+                setCurrentWorkspace(defaultWorkspace);
+                localStorage.setItem('selectedWorkspaceId', defaultWorkspace.id);
             }
         } catch (error) {
             handleError(error as Error);
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const handleSetCurrentWorkspace = (workspace: Workspace) => {
+        setCurrentWorkspace(workspace);
+        localStorage.setItem('selectedWorkspaceId', workspace.id);
     };
 
     const refreshMembers = async (workspaceId: string) => {
@@ -174,7 +186,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
                 members,
                 isLoading,
                 error,
-                setCurrentWorkspace,
+                setCurrentWorkspace: handleSetCurrentWorkspace,
                 refreshWorkspaces,
                 createWorkspace,
                 updateWorkspace,

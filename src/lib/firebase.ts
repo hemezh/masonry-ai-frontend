@@ -22,6 +22,8 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
+console.log(firebaseConfig);
+
 // Initialize Firebase
 let app: FirebaseApp | undefined;
 let auth: Auth | undefined;

@@ -5,7 +5,7 @@ import { DndContext, DragEndEvent, MouseSensor, TouchSensor, useSensor, useSenso
 import { SortableContext, horizontalListSortingStrategy, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { sheetsApi, type ColumnType } from '@/lib/api/sheets';
+import { tablesApi, type ColumnType } from '@/lib/api/tables';
 import 'react-resizable/css/styles.css';
 import debounce from 'lodash/debounce';
 
@@ -17,11 +17,12 @@ interface Column {
   minWidth?: number;
 }
 
-interface ResizableSheetProps {
-  sheetId: string;
+interface ResizableTableProps {
+  workspaceId: string;
+  tableId: string;
   columns: Column[];
   data: Record<string, any>[];
-  onColumnResize?: (columnId: string, newWidth: number) => void;
+  onColumnResize?: (columnId: string, width: number) => void;
 }
 
 interface SortableColumnProps {
@@ -138,7 +139,7 @@ function SortableRow({ row, rowIndex, columns, updateCell, totalWidth }: Sortabl
   );
 }
 
-export function ResizableSheet({ sheetId, columns: initialColumns, data: initialData, onColumnResize }: ResizableSheetProps) {
+export function ResizableTable({ workspaceId, tableId: tableId, columns: initialColumns, data: initialData, onColumnResize }: ResizableTableProps) {
   const queryClient = useQueryClient();
   const [columns, setColumns] = useState<Column[]>(initialColumns);
   const [columnOrder, setColumnOrder] = useState(() => 
@@ -181,42 +182,42 @@ export function ResizableSheet({ sheetId, columns: initialColumns, data: initial
   // Update mutations
   const updateColumnMutation = useMutation({
     mutationFn: ({ columnId, name }: { columnId: string; name: string }) => 
-      sheetsApi.updateColumn(sheetId, columnId, { name }),
+      tablesApi.updateColumn(workspaceId, tableId, columnId, { name }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sheet', sheetId] });
+      queryClient.invalidateQueries({ queryKey: ['table', tableId] });
     },
   });
 
   const reorderColumnsMutation = useMutation({
     mutationFn: (typeKeys: string[]) => 
-      sheetsApi.reorderColumns(sheetId, typeKeys),
+      tablesApi.reorderColumns(workspaceId, tableId, typeKeys),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sheet', sheetId] });
+      queryClient.invalidateQueries({ queryKey: ['table', tableId] });
     },
   });
 
-  const updateSheetDataMutation = useMutation({
+  const updateTableDataMutation = useMutation({
     mutationFn: ({ dataId, data }: { dataId: number; data: Record<string, any> }) => 
-      sheetsApi.updateSheetData(sheetId, dataId, data),
+      tablesApi.updateTableData(workspaceId, tableId, dataId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sheet-data', sheetId] });
+      queryClient.invalidateQueries({ queryKey: ['table-data', tableId] });
     },
   });
 
-  const createSheetDataMutation = useMutation({
+  const createTableDataMutation = useMutation({
     mutationFn: (data: Record<string, any>) => 
-      sheetsApi.createSheetData(sheetId, data),
+      tablesApi.createTableData(workspaceId, tableId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sheet-data', sheetId] });
+      queryClient.invalidateQueries({ queryKey: ['table-data', tableId] });
     },
   });
 
   // Add column mutation
   const addColumnMutation = useMutation({
     mutationFn: (data: { name: string; type: ColumnType; description?: string }) => 
-      sheetsApi.addColumn(sheetId, data),
+      tablesApi.addColumn(workspaceId, tableId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sheet', sheetId] });
+      queryClient.invalidateQueries({ queryKey: ['table', tableId] });
     },
   });
 
@@ -228,10 +229,10 @@ export function ResizableSheet({ sheetId, columns: initialColumns, data: initial
       if (!column) {
         throw new Error('Column not found');
       }
-      return sheetsApi.updateColumn(sheetId, columnId, { width });
+      return tablesApi.updateColumn(workspaceId, tableId, columnId, { width });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sheet', sheetId] });
+      queryClient.invalidateQueries({ queryKey: ['table', tableId] });
       setIsSaving(false);
     },
     onError: () => {
@@ -270,7 +271,7 @@ export function ResizableSheet({ sheetId, columns: initialColumns, data: initial
       // Just use column ID as the key
       newRow[column.id] = '';
     });
-    createSheetDataMutation.mutate(newRow);
+    createTableDataMutation.mutate(newRow);
   };
 
   const updateCell = (rowIndex: number, columnId: string, value: string) => {
@@ -288,7 +289,7 @@ export function ResizableSheet({ sheetId, columns: initialColumns, data: initial
     // Get the data ID from the row
     const dataId = (newData[rowIndex] as any).id;
     if (dataId) {
-      updateSheetDataMutation.mutate({
+      updateTableDataMutation.mutate({
         dataId,
         data: newData[rowIndex],
       });

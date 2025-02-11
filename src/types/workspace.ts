@@ -4,9 +4,11 @@ export interface Workspace {
     id: string;
     name: string;
     description: string;
+    is_personal: boolean;
     created_by: string;
     created_at: string;
     updated_at: string;
+    deleted_at: string | null;
 }
 
 export interface WorkspaceMember {
