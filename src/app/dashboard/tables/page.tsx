@@ -1,15 +1,49 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
-import { PlusIcon, TableCellsIcon } from '@heroicons/react/24/outline';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { PlusIcon, TableCellsIcon, EllipsisVerticalIcon } from '@heroicons/react/24/outline';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { tablesApi, type Table } from '@/lib/api/tables';
 import { useWorkspace } from '@/contexts/workspace-context';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useState } from 'react';
+import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { CreateTableDialog } from '@/components/tables/create-table-dialog';
 
 export default function TablesPage() {
   const router = useRouter();
   const { currentWorkspace, isLoading: isLoadingWorkspace } = useWorkspace();
+  const queryClient = useQueryClient();
+  const [tableToDelete, setTableToDelete] = useState<Table | null>(null);
+  const [tableToEdit, setTableToEdit] = useState<Table | null>(null);
+  const [editForm, setEditForm] = useState({ name: '', description: '' });
+  const [isCreateTableOpen, setIsCreateTableOpen] = useState(false);
   
   const { data: tables, isLoading: isLoadingTables, error } = useQuery({
     queryKey: ['tables', currentWorkspace?.id],
@@ -17,6 +51,49 @@ export default function TablesPage() {
     enabled: !!currentWorkspace,
   });
 
+  const deleteTableMutation = useMutation({
+    mutationFn: async (tableId: string) => {
+      if (!currentWorkspace) throw new Error('No workspace selected');
+      await tablesApi.deleteTable(currentWorkspace.id, tableId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tables', currentWorkspace?.id] });
+      toast.success('Table deleted successfully');
+      setTableToDelete(null);
+    },
+    onError: (error) => {
+      toast.error('Failed to delete table: ' + error.message);
+      setTableToDelete(null);
+    },
+  });
+
+  const updateTableMutation = useMutation({
+    mutationFn: async ({ tableId, data }: { tableId: string; data: { name: string; description?: string } }) => {
+      if (!currentWorkspace) throw new Error('No workspace selected');
+      return tablesApi.updateTable(currentWorkspace.id, tableId, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tables', currentWorkspace?.id] });
+      toast.success('Table updated successfully');
+      setTableToEdit(null);
+    },
+    onError: (error) => {
+      toast.error('Failed to update table: ' + error.message);
+    },
+  });
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tableToEdit) return;
+    
+    updateTableMutation.mutate({
+      tableId: tableToEdit.id,
+      data: {
+        name: editForm.name,
+        description: editForm.description
+      }
+    });
+  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -56,8 +133,8 @@ export default function TablesPage() {
       <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {/* New Table Card */}
         <button
-          onClick={() => router.push('/dashboard/tables/new')}
-          className="h-[200px] rounded-lg border border-dashed border-border hover:border-primary/50 bg-background p-6 flex flex-col items-center justify-center gap-4 transition-colors group"
+          onClick={() => setIsCreateTableOpen(true)}
+          className="h-[240px] rounded-lg border border-dashed border-border hover:border-primary/50 bg-background p-6 flex flex-col items-center justify-center gap-4 transition-colors group"
         >
           <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
             <PlusIcon className="h-6 w-6 text-primary" />
@@ -70,40 +147,148 @@ export default function TablesPage() {
 
         {/* Loading State */}
         {isLoadingTables && (
-          <div className="h-[200px] rounded-lg border bg-card p-6 flex items-center justify-center">
+          <div className="h-[240px] rounded-lg border bg-card p-6 flex items-center justify-center">
             <div className="animate-pulse text-muted-foreground">Loading...</div>
           </div>
         )}
 
         {/* Existing Tables */}
         {tables?.map((table: Table) => (
-          <button
-            key={table.id}
-            onClick={() => router.push(`/dashboard/tables/${table.id}`)}
-            className="group relative h-[200px] rounded-lg border bg-card p-6 text-left shadow-sm hover:shadow-md transition-shadow"
-          >
-            <div className="flex items-start justify-between">
-              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <TableCellsIcon className="h-6 w-6 text-primary" />
+          <div key={table.id} className="group relative h-[240px] rounded-lg border bg-card p-5 text-left shadow-sm hover:shadow-md transition-shadow flex flex-col">
+            <div className="flex items-start justify-between relative z-10">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <TableCellsIcon className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex items-center text-xs text-muted-foreground">
+                  <span className="font-medium">{table.columns?.columns?.length || 0}</span>
+                  <span className="ml-1">columns</span>
+                </div>
               </div>
-              <div className="text-xs text-muted-foreground">
-                {table.columns?.columns?.length || 0} columns
-              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
+                    <EllipsisVerticalIcon className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setTableToEdit(table);
+                      setEditForm({
+                        name: table.name,
+                        description: table.description || ''
+                      });
+                    }}
+                  >
+                    Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setTableToDelete(table);
+                    }}
+                  >
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
-            <div className="mt-4">
+            <button
+              onClick={() => router.push(`/dashboard/tables/${table.id}`)}
+              className="absolute inset-0 z-0"
+            >
+              <span className="sr-only">View table {table.name}</span>
+            </button>
+            <div className="mt-3 relative z-10 pointer-events-none flex-1">
               <h3 className="font-medium text-foreground group-hover:text-primary transition-colors">
                 {table.name}
               </h3>
-              <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
+              <p className="mt-1.5 text-sm text-muted-foreground line-clamp-2">
                 {table.description || 'No description'}
               </p>
             </div>
-            <div className="absolute bottom-6 left-6 text-xs text-muted-foreground">
+            <div className="text-xs text-muted-foreground border-t pt-2 mt-auto relative z-10 pointer-events-none">
               Updated {formatDate(table.updated_at)}
             </div>
-          </button>
+          </div>
         ))}
       </div>
+
+      <AlertDialog open={!!tableToDelete} onOpenChange={(open) => !open && setTableToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the table &quot;{tableToDelete?.name}&quot; and all its data.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => tableToDelete && deleteTableMutation.mutate(tableToDelete.id)}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Edit Modal */}
+      <Dialog open={!!tableToEdit} onOpenChange={(open) => {
+        if (!open) setTableToEdit(null);
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Table</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit}>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="name">Name</Label>
+                <Input
+                  id="name"
+                  value={editForm.name}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={editForm.description}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Add a description..."
+                  rows={3}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setTableToEdit(null)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit">
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Table Dialog */}
+      <CreateTableDialog
+        isOpen={isCreateTableOpen}
+        onOpenChange={setIsCreateTableOpen}
+      />
     </div>
   );
 } 

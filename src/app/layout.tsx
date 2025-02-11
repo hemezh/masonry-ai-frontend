@@ -1,5 +1,3 @@
-
-
 import type { Metadata } from 'next';
 import './globals.css';
 import { Inter } from 'next/font/google';
@@ -9,6 +7,7 @@ import { WorkspaceProvider } from '@/contexts/workspace-context';
 import { Toaster } from '@/components/ui/toaster';
 import LayoutWrapper from '@/components/layout/layout-wrapper';
 import { QueryProvider } from '@/providers/QueryProvider';
+import { Toaster as SonnerToaster } from 'sonner';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -40,16 +39,14 @@ export default function RootLayout({
       <body className={`${inter.className} bg-background text-foreground`} suppressHydrationWarning>
         <ThemeProvider>
           <AuthProvider>
-          <QueryProvider>
-
-            <WorkspaceProvider>
-              <LayoutWrapper>{children}</LayoutWrapper>
-              <Toaster />
-            </WorkspaceProvider>
-          </QueryProvider>
-
+            <QueryProvider>
+              <WorkspaceProvider>
+                <LayoutWrapper>{children}</LayoutWrapper>
+                <Toaster />
+                <SonnerToaster position="bottom-right" />
+              </WorkspaceProvider>
+            </QueryProvider>
           </AuthProvider>
-      
         </ThemeProvider>
       </body>
     </html>

@@ -1,14 +1,16 @@
-'use client';
-
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { tablesApi } from '@/lib/api/tables';
 import { useWorkspace } from '@/contexts/workspace-context';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import {
   Form,
   FormControl,
@@ -20,7 +22,8 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/components/ui/use-toast';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 const formSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -29,10 +32,14 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-export default function NewTablePage() {
-  const router = useRouter();
-  const { currentWorkspace, isLoading: isLoadingWorkspace } = useWorkspace();
-  const { toast } = useToast();
+interface CreateTableDialogProps {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export function CreateTableDialog({ isOpen, onOpenChange }: CreateTableDialogProps) {
+  const { currentWorkspace } = useWorkspace();
+  const queryClient = useQueryClient();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -49,19 +56,14 @@ export default function NewTablePage() {
       }
       return tablesApi.createTable(currentWorkspace.id, data);
     },
-    onSuccess: (data) => {
-      toast({
-        title: 'Success',
-        description: 'Table created successfully',
-      });
-      router.push(`/dashboard/tables/${data.id}`);
+    onSuccess: () => {
+      toast.success('Table created successfully');
+      queryClient.invalidateQueries({ queryKey: ['tables', currentWorkspace?.id] });
+      onOpenChange(false);
+      form.reset();
     },
     onError: (error) => {
-      toast({
-        title: 'Error',
-        description: `Failed to create table: ${error.message}`,
-        variant: 'destructive',
-      });
+      toast.error(`Failed to create table: ${error.message}`);
     },
   });
 
@@ -69,28 +71,14 @@ export default function NewTablePage() {
     createTableMutation.mutate(data);
   };
 
-  if (isLoadingWorkspace) {
-    return (
-      <div className="p-8">
-        <div className="text-muted-foreground">Loading workspace...</div>
-      </div>
-    );
-  }
-
-  if (!currentWorkspace && !isLoadingWorkspace) {
-    return (
-      <div className="p-8">
-        <div className="text-muted-foreground">Please select a workspace to create a table.</div>
-      </div>
-    );
-  }
-
   return (
-    <div className="container mx-auto p-6">
-      <div className="max-w-2xl mx-auto">
-        <h1 className="text-2xl font-bold mb-6">Create New Table</h1>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Create New Table</DialogTitle>
+        </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="name"
@@ -119,17 +107,21 @@ export default function NewTablePage() {
                 </FormItem>
               )}
             />
-            <div className="flex justify-end gap-4">
-              <Button variant="outline" onClick={() => router.back()}>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+              >
                 Cancel
               </Button>
               <Button type="submit" disabled={createTableMutation.isPending}>
                 {createTableMutation.isPending ? 'Creating...' : 'Create Table'}
               </Button>
-            </div>
+            </DialogFooter>
           </form>
         </Form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
-}
+} 
