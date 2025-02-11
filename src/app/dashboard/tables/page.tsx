@@ -1,15 +1,35 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
-import { PlusIcon, TableCellsIcon } from '@heroicons/react/24/outline';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { PlusIcon, TableCellsIcon, EllipsisVerticalIcon } from '@heroicons/react/24/outline';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { tablesApi, type Table } from '@/lib/api/tables';
 import { useWorkspace } from '@/contexts/workspace-context';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useState } from 'react';
+import { toast } from 'sonner';
 
 export default function TablesPage() {
   const router = useRouter();
   const { currentWorkspace, isLoading: isLoadingWorkspace } = useWorkspace();
+  const queryClient = useQueryClient();
+  const [tableToDelete, setTableToDelete] = useState<Table | null>(null);
   
   const { data: tables, isLoading: isLoadingTables, error } = useQuery({
     queryKey: ['tables', currentWorkspace?.id],
@@ -17,6 +37,21 @@ export default function TablesPage() {
     enabled: !!currentWorkspace,
   });
 
+  const deleteTableMutation = useMutation({
+    mutationFn: async (tableId: string) => {
+      if (!currentWorkspace) throw new Error('No workspace selected');
+      await tablesApi.deleteTable(currentWorkspace.id, tableId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tables', currentWorkspace?.id] });
+      toast.success('Table deleted successfully');
+      setTableToDelete(null);
+    },
+    onError: (error) => {
+      toast.error('Failed to delete table: ' + error.message);
+      setTableToDelete(null);
+    },
+  });
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -77,12 +112,8 @@ export default function TablesPage() {
 
         {/* Existing Tables */}
         {tables?.map((table: Table) => (
-          <button
-            key={table.id}
-            onClick={() => router.push(`/dashboard/tables/${table.id}`)}
-            className="group relative h-[240px] rounded-lg border bg-card p-5 text-left shadow-sm hover:shadow-md transition-shadow flex flex-col"
-          >
-            <div className="flex items-start">
+          <div key={table.id} className="group relative h-[240px] rounded-lg border bg-card p-5 text-left shadow-sm hover:shadow-md transition-shadow flex flex-col">
+            <div className="flex items-start justify-between relative z-10">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
                   <TableCellsIcon className="h-5 w-5 text-primary" />
@@ -92,8 +123,32 @@ export default function TablesPage() {
                   <span className="ml-1">columns</span>
                 </div>
               </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
+                    <EllipsisVerticalIcon className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setTableToDelete(table);
+                    }}
+                  >
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
-            <div className="mt-3 flex-1">
+            <button
+              onClick={() => router.push(`/dashboard/tables/${table.id}`)}
+              className="absolute inset-0 z-0"
+            >
+              <span className="sr-only">View table {table.name}</span>
+            </button>
+            <div className="mt-3 relative z-10 pointer-events-none flex-1">
               <h3 className="font-medium text-foreground group-hover:text-primary transition-colors">
                 {table.name}
               </h3>
@@ -101,12 +156,33 @@ export default function TablesPage() {
                 {table.description || 'No description'}
               </p>
             </div>
-            <div className="text-xs text-muted-foreground border-t pt-2 mt-2">
+            <div className="text-xs text-muted-foreground border-t pt-2 mt-auto relative z-10 pointer-events-none">
               Updated {formatDate(table.updated_at)}
             </div>
-          </button>
+          </div>
         ))}
       </div>
+
+      <AlertDialog open={!!tableToDelete} onOpenChange={(open) => !open && setTableToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the table &quot;{tableToDelete?.name}&quot; and all its data.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => tableToDelete && deleteTableMutation.mutate(tableToDelete.id)}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 } 
