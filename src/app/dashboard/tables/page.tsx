@@ -34,6 +34,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { CreateTableDialog } from '@/components/tables/create-table-dialog';
 
 export default function TablesPage() {
   const router = useRouter();
@@ -42,6 +43,7 @@ export default function TablesPage() {
   const [tableToDelete, setTableToDelete] = useState<Table | null>(null);
   const [tableToEdit, setTableToEdit] = useState<Table | null>(null);
   const [editForm, setEditForm] = useState({ name: '', description: '' });
+  const [isCreateTableOpen, setIsCreateTableOpen] = useState(false);
   
   const { data: tables, isLoading: isLoadingTables, error } = useQuery({
     queryKey: ['tables', currentWorkspace?.id],
@@ -131,7 +133,7 @@ export default function TablesPage() {
       <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {/* New Table Card */}
         <button
-          onClick={() => router.push('/dashboard/tables/new')}
+          onClick={() => setIsCreateTableOpen(true)}
           className="h-[240px] rounded-lg border border-dashed border-border hover:border-primary/50 bg-background p-6 flex flex-col items-center justify-center gap-4 transition-colors group"
         >
           <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
@@ -281,6 +283,12 @@ export default function TablesPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Create Table Dialog */}
+      <CreateTableDialog
+        isOpen={isCreateTableOpen}
+        onOpenChange={setIsCreateTableOpen}
+      />
     </div>
   );
 } 
