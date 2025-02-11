@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 
 const formSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -32,7 +32,6 @@ type FormValues = z.infer<typeof formSchema>;
 export default function NewTablePage() {
   const router = useRouter();
   const { currentWorkspace, isLoading: isLoadingWorkspace } = useWorkspace();
-  const { toast } = useToast();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -50,18 +49,11 @@ export default function NewTablePage() {
       return tablesApi.createTable(currentWorkspace.id, data);
     },
     onSuccess: (data) => {
-      toast({
-        title: 'Success',
-        description: 'Table created successfully',
-      });
+      toast.success('Table created successfully');
       router.push(`/dashboard/tables/${data.id}`);
     },
     onError: (error) => {
-      toast({
-        title: 'Error',
-        description: `Failed to create table: ${error.message}`,
-        variant: 'destructive',
-      });
+      toast.error(`Failed to create table: ${error.message}`);
     },
   });
 

@@ -24,12 +24,24 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useState } from 'react';
 import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 
 export default function TablesPage() {
   const router = useRouter();
   const { currentWorkspace, isLoading: isLoadingWorkspace } = useWorkspace();
   const queryClient = useQueryClient();
   const [tableToDelete, setTableToDelete] = useState<Table | null>(null);
+  const [tableToEdit, setTableToEdit] = useState<Table | null>(null);
+  const [editForm, setEditForm] = useState({ name: '', description: '' });
   
   const { data: tables, isLoading: isLoadingTables, error } = useQuery({
     queryKey: ['tables', currentWorkspace?.id],
@@ -52,6 +64,34 @@ export default function TablesPage() {
       setTableToDelete(null);
     },
   });
+
+  const updateTableMutation = useMutation({
+    mutationFn: async ({ tableId, data }: { tableId: string; data: { name: string; description?: string } }) => {
+      if (!currentWorkspace) throw new Error('No workspace selected');
+      return tablesApi.updateTable(currentWorkspace.id, tableId, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tables', currentWorkspace?.id] });
+      toast.success('Table updated successfully');
+      setTableToEdit(null);
+    },
+    onError: (error) => {
+      toast.error('Failed to update table: ' + error.message);
+    },
+  });
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tableToEdit) return;
+    
+    updateTableMutation.mutate({
+      tableId: tableToEdit.id,
+      data: {
+        name: editForm.name,
+        description: editForm.description
+      }
+    });
+  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -131,6 +171,18 @@ export default function TablesPage() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setTableToEdit(table);
+                      setEditForm({
+                        name: table.name,
+                        description: table.description || ''
+                      });
+                    }}
+                  >
+                    Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
                     className="text-destructive focus:text-destructive"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -183,6 +235,52 @@ export default function TablesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Edit Modal */}
+      <Dialog open={!!tableToEdit} onOpenChange={(open) => {
+        if (!open) setTableToEdit(null);
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Table</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit}>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="name">Name</Label>
+                <Input
+                  id="name"
+                  value={editForm.name}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={editForm.description}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Add a description..."
+                  rows={3}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setTableToEdit(null)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit">
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 

@@ -7,7 +7,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { tablesApi, type ColumnType } from '@/lib/api/tables';
 import { AddColumnDialog } from './add-column-dialog';
-import { useToast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import 'react-resizable/css/styles.css';
 import debounce from 'lodash/debounce';
 
@@ -158,7 +158,6 @@ function SortableRow({ row, rowIndex, columns, updateCell, totalWidth, errors }:
 
 export function ResizableTable({ workspaceId, tableId: tableId, columns: initialColumns, data: initialData, onColumnResize }: ResizableTableProps) {
   const queryClient = useQueryClient();
-  const { toast } = useToast();
   const [columns, setColumns] = useState<Column[]>(initialColumns);
   const [columnOrder, setColumnOrder] = useState(() => 
     initialColumns.map(col => col.id.toString())
@@ -253,19 +252,12 @@ export function ResizableTable({ workspaceId, tableId: tableId, columns: initial
         queryClient.setQueryData(['table-data', tableId], context.previousData);
       }
       setIsSaving(false);
-      toast({
-        title: 'Error',
-        description: 'Failed to save changes',
-        variant: 'destructive',
-      });
+      toast.error('Failed to save changes');
       console.error('Error updating table data:', err);
     },
     onSuccess: () => {
       setIsSaving(false);
-      toast({
-        title: 'Success',
-        description: 'Changes saved successfully',
-      });
+      toast.success('Changes saved successfully');
     },
     onSettled: () => {
       // Only refetch if there was an error
@@ -280,18 +272,11 @@ export function ResizableTable({ workspaceId, tableId: tableId, columns: initial
       tablesApi.createTableData(workspaceId, tableId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['table-data', tableId] });
-      toast({
-        title: 'Success',
-        description: 'Row added successfully',
-      });
+      toast.success('Row added successfully');
     },
     onError: (error: any) => {
       console.error('Error adding row:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to add row',
-        variant: 'destructive',
-      });
+      toast.error('Failed to add row');
     },
   });
 
@@ -302,10 +287,7 @@ export function ResizableTable({ workspaceId, tableId: tableId, columns: initial
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['table', tableId] });
       setIsAddColumnDialogOpen(false);
-      toast({
-        title: 'Success',
-        description: 'Column added successfully',
-      });
+      toast.success('Column added successfully');
     },
     onError: (error: any) => {
       console.error('Error adding column:', error);
@@ -318,11 +300,7 @@ export function ResizableTable({ workspaceId, tableId: tableId, columns: initial
         errorMessage = error.message;
       }
 
-      toast({
-        title: 'Error',
-        description: errorMessage,
-        variant: 'destructive',
-      });
+      toast.error(errorMessage);
     },
   });
 
