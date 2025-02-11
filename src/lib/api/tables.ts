@@ -42,9 +42,17 @@ export const TableSchema = z.object({
   columns: data.columns || { columns: [] },
 }));
 
+// Schema for column addition response
+export const AddColumnResponseSchema = z.object({
+  name: z.string(),
+  type_key: z.string(),
+  type: ColumnTypeSchema,
+  description: z.string().optional(),
+}).or(TableSchema);
+
 export const TableDataSchema = z.object({
   id: z.number(),
-  sheet_id: z.string().uuid(),
+  table_id: z.string().uuid(),
   data: z.record(z.string(), z.any()),
   created_at: z.string(),
   updated_at: z.string(),
@@ -78,7 +86,7 @@ const fetchApi = async (endpoint: string, options?: RequestInit) => {
 };
 
 export const tablesApi = {
-  // Create a new sheet
+  // Create a new table
   createTable: async (workspaceId: string, data: { name: string; description?: string }) => {
     const response = await fetchApi(`/workspaces/${workspaceId}/tables`, {
       method: 'POST',
@@ -88,19 +96,19 @@ export const tablesApi = {
     return TableSchema.parse(await response.json());
   },
 
-  // List all sheets in a workspace
+  // List all tables in a workspace
   listTables: async (workspaceId: string) => {
     const response = await fetchApi(`/workspaces/${workspaceId}/tables`);
     return z.array(TableSchema).parse(await response.json());
   },
 
-  // Get a single sheet by ID
+  // Get a single table by ID
   getTable: async (workspaceId: string, id: string) => {
     const response = await fetchApi(`/workspaces/${workspaceId}/tables/${id}`);
     return TableSchema.parse(await response.json());
   },
 
-  // Update a sheet
+  // Update a table
   updateTable: async (workspaceId: string, id: string, data: { name?: string; description?: string }) => {
     const response = await fetchApi(`/workspaces/${workspaceId}/tables/${id}`, {
       method: 'PUT',
@@ -110,26 +118,33 @@ export const tablesApi = {
     return TableSchema.parse(await response.json());
   },
 
-  // Delete a sheet
+  // Delete a table
   deleteTable: async (workspaceId: string, id: string) => {
     await fetchApi(`/workspaces/${workspaceId}/tables/${id}`, {
       method: 'DELETE',
     });
   },
 
-  // Add a column to a sheet
-  addColumn: async (workspaceId: string, sheetId: string, data: { name: string; type: ColumnType; description?: string }) => {
-    const response = await fetchApi(`/workspaces/${workspaceId}/tables/${sheetId}/columns`, {
+  // Add a column to a table
+  addColumn: async (workspaceId: string, tableId: string, data: { name: string; type: ColumnType; description?: string }) => {
+    const response = await fetchApi(`/workspaces/${workspaceId}/tables/${tableId}/columns`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
     
-    return TableSchema.parse(await response.json());
+    try {
+      const responseData = await response.json();
+      return AddColumnResponseSchema.parse(responseData);
+    } catch (error) {
+      console.error('Error parsing add column response:', error);
+      // If parsing fails, just return the raw response
+      return response.json();
+    }
   },
 
   // Update a column
-  updateColumn: async (workspaceId: string, sheetId: string, typeKey: TypedColumnKey, data: { name?: string; description?: string; width?: number }) => {
-    const response = await fetchApi(`/workspaces/${workspaceId}/tables/${sheetId}/columns/${typeKey}`, {
+  updateColumn: async (workspaceId: string, tableId: string, typeKey: TypedColumnKey, data: { name?: string; description?: string; width?: number }) => {
+    const response = await fetchApi(`/workspaces/${workspaceId}/tables/${tableId}/columns/${typeKey}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
@@ -138,8 +153,8 @@ export const tablesApi = {
   },
 
   // Reorder columns
-  reorderColumns: async (workspaceId: string, sheetId: string, typeKeys: TypedColumnKey[]) => {
-    const response = await fetchApi(`/workspaces/${workspaceId}/tables/${sheetId}/columns/reorder`, {
+  reorderColumns: async (workspaceId: string, tableId: string, typeKeys: TypedColumnKey[]) => {
+    const response = await fetchApi(`/workspaces/${workspaceId}/tables/${tableId}/columns/reorder`, {
       method: 'POST',
       body: JSON.stringify({ type_keys: typeKeys }),
     });
@@ -147,9 +162,9 @@ export const tablesApi = {
     return TableSchema.parse(await response.json());
   },
 
-  // Create sheet data
-  createTableData: async (workspaceId: string, sheetId: string, data: Record<string, any>) => {
-    const response = await fetchApi(`/workspaces/${workspaceId}/tables/${sheetId}/data`, {
+  // Create table data
+  createTableData: async (workspaceId: string, tableId: string, data: Record<string, any>) => {
+    const response = await fetchApi(`/workspaces/${workspaceId}/tables/${tableId}/data`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -157,15 +172,15 @@ export const tablesApi = {
     return TableDataSchema.parse(await response.json());
   },
 
-  // List sheet data
-  listTableData: async (workspaceId: string, sheetId: string) => {
-    const response = await fetchApi(`/workspaces/${workspaceId}/tables/${sheetId}/data`);
+  // List table data
+  listTableData: async (workspaceId: string, tableId: string) => {
+    const response = await fetchApi(`/workspaces/${workspaceId}/tables/${tableId}/data`);
     return z.array(TableDataSchema).parse(await response.json());
   },
 
-  // Update sheet data
-  updateTableData: async (workspaceId: string, sheetId: string, dataId: number, data: Record<string, any>) => {
-    const response = await fetchApi(`/workspaces/${workspaceId}/tables/${sheetId}/data/${dataId}`, {
+  // Update table data
+  updateTableData: async (workspaceId: string, tableId: string, dataId: number, data: Record<string, any>) => {
+    const response = await fetchApi(`/workspaces/${workspaceId}/tables/${tableId}/data/${dataId}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
@@ -173,16 +188,16 @@ export const tablesApi = {
     return TableDataSchema.parse(await response.json());
   },
 
-  // Delete sheet data
-  deleteTableData: async (workspaceId: string, sheetId: string, dataId: number) => {
-    await fetchApi(`/workspaces/${workspaceId}/tables/${sheetId}/data/${dataId}`, {
+  // Delete table data
+  deleteTableData: async (workspaceId: string, tableId: string, dataId: number) => {
+    await fetchApi(`/workspaces/${workspaceId}/tables/${tableId}/data/${dataId}`, {
       method: 'DELETE',
     });
   },
 
-  // Move sheet data
-  moveTableData: async (workspaceId: string, sheetId: string, dataId: number, targetPosition: number) => {
-    await fetchApi(`/workspaces/${workspaceId}/tables/${sheetId}/data/${dataId}/move`, {
+  // Move table data
+  moveTableData: async (workspaceId: string, tableId: string, dataId: number, targetPosition: number) => {
+    await fetchApi(`/workspaces/${workspaceId}/tables/${tableId}/data/${dataId}/move`, {
       method: 'POST',
       body: JSON.stringify({ target_position: targetPosition }),
     });

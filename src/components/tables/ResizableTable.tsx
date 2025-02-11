@@ -6,6 +6,8 @@ import { SortableContext, horizontalListSortingStrategy, verticalListSortingStra
 import { CSS } from '@dnd-kit/utilities';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { tablesApi, type ColumnType } from '@/lib/api/tables';
+import { AddColumnDialog } from './add-column-dialog';
+import { useToast } from '@/components/ui/use-toast';
 import 'react-resizable/css/styles.css';
 import debounce from 'lodash/debounce';
 
@@ -141,6 +143,7 @@ function SortableRow({ row, rowIndex, columns, updateCell, totalWidth }: Sortabl
 
 export function ResizableTable({ workspaceId, tableId: tableId, columns: initialColumns, data: initialData, onColumnResize }: ResizableTableProps) {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [columns, setColumns] = useState<Column[]>(initialColumns);
   const [columnOrder, setColumnOrder] = useState(() => 
     initialColumns.map(col => col.id.toString())
@@ -150,6 +153,7 @@ export function ResizableTable({ workspaceId, tableId: tableId, columns: initial
     initialColumns.reduce((sum, col) => sum + col.width, 0) + 100
   );
   const [isSaving, setIsSaving] = useState(false);
+  const [isAddColumnDialogOpen, setIsAddColumnDialogOpen] = useState(false);
   const dataRef = useRef<HTMLDivElement>(null);
   const footerRef = useRef<HTMLDivElement>(null);
   const resizeTimeoutRef = useRef<NodeJS.Timeout>(null);
@@ -209,6 +213,18 @@ export function ResizableTable({ workspaceId, tableId: tableId, columns: initial
       tablesApi.createTableData(workspaceId, tableId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['table-data', tableId] });
+      toast({
+        title: 'Success',
+        description: 'Row added successfully',
+      });
+    },
+    onError: (error: any) => {
+      console.error('Error adding row:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to add row',
+        variant: 'destructive',
+      });
     },
   });
 
@@ -218,6 +234,28 @@ export function ResizableTable({ workspaceId, tableId: tableId, columns: initial
       tablesApi.addColumn(workspaceId, tableId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['table', tableId] });
+      setIsAddColumnDialogOpen(false);
+      toast({
+        title: 'Success',
+        description: 'Column added successfully',
+      });
+    },
+    onError: (error: any) => {
+      console.error('Error adding column:', error);
+      let errorMessage = 'Failed to add column';
+      
+      // Handle validation errors
+      if (error.message && error.message.includes('invalid_type')) {
+        errorMessage = 'Invalid column data format';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive',
+      });
     },
   });
 
@@ -258,20 +296,13 @@ export function ResizableTable({ workspaceId, tableId: tableId, columns: initial
     [updateColumnWidthMutation]
   );
 
-  const addColumn = () => {
-    addColumnMutation.mutate({
-      name: 'New Column',
-      type: 's',  // Always string type by default
-    });
+  const handleAddColumn = (data: { name: string; type: ColumnType; description?: string }) => {
+    addColumnMutation.mutate(data);
   };
 
   const addRow = () => {
-    const newRow: Record<string, string> = {};
-    columns.forEach((column: Column) => {
-      // Just use column ID as the key
-      newRow[column.id] = '';
-    });
-    createTableDataMutation.mutate(newRow);
+    // Create an empty row without any initial values
+    createTableDataMutation.mutate({});
   };
 
   const updateCell = (rowIndex: number, columnId: string, value: string) => {
@@ -397,7 +428,7 @@ export function ResizableTable({ workspaceId, tableId: tableId, columns: initial
                   className="flex items-center justify-end px-2 border-r border-b border-border bg-card min-w-[100px] flex-1"
                 >
                   <button
-                    onClick={addColumn}
+                    onClick={() => setIsAddColumnDialogOpen(true)}
                     className="p-1 text-muted-foreground hover:text-primary transition-colors"
                     title="Add Column"
                   >
@@ -456,6 +487,13 @@ export function ResizableTable({ workspaceId, tableId: tableId, columns: initial
           </div>
         </div>
       </div>
+
+      <AddColumnDialog
+        isOpen={isAddColumnDialogOpen}
+        onOpenChange={setIsAddColumnDialogOpen}
+        onSubmit={handleAddColumn}
+        isLoading={addColumnMutation.isPending}
+      />
     </div>
   );
 } 
