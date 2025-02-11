@@ -1,19 +1,24 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Resizable } from 'react-resizable';
+import { Resizable, ResizeCallbackData } from 'react-resizable';
 import { PlusIcon } from '@heroicons/react/24/outline';
 import { DndContext, DragEndEvent, MouseSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { sheetsApi, type ColumnType } from '@/lib/api/sheets';
 import 'react-resizable/css/styles.css';
+import debounce from 'lodash/debounce';
 
 interface Column {
   id: string;
   header: string;
   width: number;
+  type: ColumnType;
   minWidth?: number;
 }
 
 interface ResizableSheetProps {
+  sheetId: string;
   columns: Column[];
   data: Record<string, any>[];
   onColumnResize?: (columnId: string, newWidth: number) => void;
@@ -41,7 +46,7 @@ function SortableColumn({ column, onResize, children }: SortableColumnProps) {
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: column.id });
+  } = useSortable({ id: column.id.toString() });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -55,7 +60,7 @@ function SortableColumn({ column, onResize, children }: SortableColumnProps) {
         width={column.width}
         height={40}
         minConstraints={[column.minWidth || 100, 40]}
-        onResize={(e, { size }) => onResize(size.width)}
+        onResize={(e, data) => onResize(data.size.width)}
         draggableOpts={{ enableUserSelectHack: false }}
         className="relative"
       >
@@ -103,7 +108,7 @@ function SortableRow({ row, rowIndex, columns, updateCell, totalWidth }: Sortabl
           style={{ width: totalWidth }}
           {...listeners}
         >
-          {columns.map((column) => (
+          {columns.map((column: Column) => (
             <div
               key={column.id}
               className="relative flex-shrink-0"
@@ -117,9 +122,9 @@ function SortableRow({ row, rowIndex, columns, updateCell, totalWidth }: Sortabl
                   type="text"
                   value={row[column.id] || ''}
                   onChange={(e) => updateCell(rowIndex, column.id, e.target.value)}
-                  className="absolute inset-0 bg-gray-50 border-none focus:outline-none focus:ring-0 focus:bg-white rounded-none px-4 py-2 w-full focus:z-30 transition-colors"
+                  className="absolute inset-0 bg-background border-none focus:outline-none focus:ring-0 focus:bg-background hover:bg-muted/30 rounded-none px-4 py-2 w-full focus:z-30 transition-colors text-foreground"
                 />
-                <span className="pointer-events-none px-4 py-2">
+                <span className="pointer-events-none px-4 py-2 text-foreground">
                   {row[column.id] || ''}
                 </span>
               </div>
@@ -133,17 +138,31 @@ function SortableRow({ row, rowIndex, columns, updateCell, totalWidth }: Sortabl
   );
 }
 
-export function ResizableSheet({ columns: initialColumns, data: initialData, onColumnResize }: ResizableSheetProps) {
-  const [columns, setColumns] = useState(initialColumns);
+export function ResizableSheet({ sheetId, columns: initialColumns, data: initialData, onColumnResize }: ResizableSheetProps) {
+  const queryClient = useQueryClient();
+  const [columns, setColumns] = useState<Column[]>(initialColumns);
   const [columnOrder, setColumnOrder] = useState(() => 
-    initialColumns.map(col => col.id)
+    initialColumns.map(col => col.id.toString())
   );
   const [data, setData] = useState(initialData);
   const [totalWidth, setTotalWidth] = useState(() => 
     initialColumns.reduce((sum, col) => sum + col.width, 0) + 100
   );
+  const [isSaving, setIsSaving] = useState(false);
   const dataRef = useRef<HTMLDivElement>(null);
   const footerRef = useRef<HTMLDivElement>(null);
+  const resizeTimeoutRef = useRef<NodeJS.Timeout>(null);
+
+  // Update local state when props change
+  useEffect(() => {
+    setColumns(initialColumns);
+    setColumnOrder(initialColumns.map(col => col.id.toString()));
+    setTotalWidth(initialColumns.reduce((sum, col) => sum + col.width, 0) + 100);
+  }, [initialColumns]);
+
+  useEffect(() => {
+    setData(initialData);
+  }, [initialData]);
 
   const sensors = useSensors(
     useSensor(MouseSensor, {
@@ -159,62 +178,128 @@ export function ResizableSheet({ columns: initialColumns, data: initialData, onC
     })
   );
 
-  const handleResize = useCallback((columnId: string) => (
-    event: React.SyntheticEvent,
-    { size }: { size: { width: number; height: number } }
-  ) => {
-    const newColumns = columns.map(col => {
-      if (col.id === columnId) {
-        return { ...col, width: size.width };
+  // Update mutations
+  const updateColumnMutation = useMutation({
+    mutationFn: ({ columnId, name }: { columnId: string; name: string }) => 
+      sheetsApi.updateColumn(sheetId, columnId, { name }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sheet', sheetId] });
+    },
+  });
+
+  const reorderColumnsMutation = useMutation({
+    mutationFn: (typeKeys: string[]) => 
+      sheetsApi.reorderColumns(sheetId, typeKeys),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sheet', sheetId] });
+    },
+  });
+
+  const updateSheetDataMutation = useMutation({
+    mutationFn: ({ dataId, data }: { dataId: number; data: Record<string, any> }) => 
+      sheetsApi.updateSheetData(sheetId, dataId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sheet-data', sheetId] });
+    },
+  });
+
+  const createSheetDataMutation = useMutation({
+    mutationFn: (data: Record<string, any>) => 
+      sheetsApi.createSheetData(sheetId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sheet-data', sheetId] });
+    },
+  });
+
+  // Add column mutation
+  const addColumnMutation = useMutation({
+    mutationFn: (data: { name: string; type: ColumnType; description?: string }) => 
+      sheetsApi.addColumn(sheetId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sheet', sheetId] });
+    },
+  });
+
+  // Update column width mutation
+  const updateColumnWidthMutation = useMutation({
+    mutationFn: ({ columnId, width }: { columnId: string; width: number }) => {
+      // Find the column to get its type key
+      const column = columns.find(col => col.id === columnId);
+      if (!column) {
+        throw new Error('Column not found');
       }
-      return col;
-    });
-    
-    const newTotalWidth = newColumns.reduce((sum, col) => sum + col.width, 0) + 100;
-    setTotalWidth(newTotalWidth);
-    setColumns(newColumns);
-    onColumnResize?.(columnId, size.width);
-  }, [columns, onColumnResize]);
+      return sheetsApi.updateColumn(sheetId, columnId, { width });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sheet', sheetId] });
+      setIsSaving(false);
+    },
+    onError: () => {
+      setIsSaving(false);
+    },
+  });
+
+  // Debounced column width update
+  const debouncedUpdateWidth = useCallback(
+    (columnId: string, width: number) => {
+      setIsSaving(true);
+      
+      // Clear any existing timeout
+      if (resizeTimeoutRef.current) {
+        clearTimeout(resizeTimeoutRef.current);
+      }
+
+      // Set new timeout
+      resizeTimeoutRef.current = setTimeout(() => {
+        updateColumnWidthMutation.mutate({ columnId, width });
+      }, 500);
+    },
+    [updateColumnWidthMutation]
+  );
 
   const addColumn = () => {
-    const columnId = `col-${columns.length + 1}`;
-    const newColumn: Column = {
-      id: columnId,
-      header: `Column ${columns.length + 1}`,
-      width: 150,
-      minWidth: 100,
-    };
-    
-    setColumns([...columns, newColumn]);
-    // Add the new column to existing rows with empty values
-    setData(data.map(row => ({
-      ...row,
-      [columnId]: ''
-    })));
+    addColumnMutation.mutate({
+      name: 'New Column',
+      type: 's',  // Always string type by default
+    });
   };
 
   const addRow = () => {
-    const newRow = columns.reduce((acc, col) => ({
-      ...acc,
-      [col.id]: ''
-    }), {});
-    setData([...data, newRow]);
+    const newRow: Record<string, string> = {};
+    columns.forEach((column: Column) => {
+      // Just use column ID as the key
+      newRow[column.id] = '';
+    });
+    createSheetDataMutation.mutate(newRow);
   };
 
   const updateCell = (rowIndex: number, columnId: string, value: string) => {
     const newData = [...data];
+    const column = columns.find(col => col.id === columnId);
+    if (!column) return;
+
+    // Just use column ID as the key
     newData[rowIndex] = {
       ...newData[rowIndex],
       [columnId]: value
     };
     setData(newData);
+
+    // Get the data ID from the row
+    const dataId = (newData[rowIndex] as any).id;
+    if (dataId) {
+      updateSheetDataMutation.mutate({
+        dataId,
+        data: newData[rowIndex],
+      });
+    }
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
-    if (typeof active.id === 'string' && typeof over.id === 'string' && active.id.startsWith('col-')) {
+    if (typeof active.id === 'string' && typeof over.id === 'string') {
       // Handle column reordering
       const oldIndex = columnOrder.indexOf(active.id);
       const newIndex = columnOrder.indexOf(over.id);
@@ -225,12 +310,14 @@ export function ResizableSheet({ columns: initialColumns, data: initialData, onC
       
       // Update column order
       setColumnOrder(newOrder);
+      reorderColumnsMutation.mutate(newOrder);
 
       // Reorder data in each row according to new column order
       const newData = data.map(row => {
         const reorderedRow = {} as Record<string, any>;
         // Add columns in new order
         newOrder.forEach(columnId => {
+          // Just use column ID as the key
           reorderedRow[columnId] = row[columnId];
         });
         return reorderedRow;
@@ -242,49 +329,67 @@ export function ResizableSheet({ columns: initialColumns, data: initialData, onC
 
   // Get ordered columns for display
   const orderedColumns = columnOrder.map(id => 
-    columns.find(col => col.id === id)!
+    columns.find(col => col.id.toString() === id)!
   );
 
   return (
     <div className="relative h-[calc(100vh-12rem)] p-1">
+      {isSaving && (
+        <div className="absolute top-0 right-0 m-4 px-3 py-1 bg-green-100 text-green-600 text-sm rounded-md font-medium">
+          Saving changes...
+        </div>
+      )}
       <div className="absolute inset-0 border rounded-lg flex flex-col overflow-hidden bg-background shadow-md">
         <div className="flex-1 overflow-auto">
           <div className="min-w-full">
             {/* Header row */}
             <div className="flex min-h-[40px] relative">
               <div className="flex flex-1 bg-card border-b border-border" style={{ width: totalWidth }}>
-                {columns.map((column) => (
-                  <Resizable
+                {columns.map((column: Column) => (
+                  <SortableColumn
                     key={column.id}
-                    width={column.width}
-                    height={40}
-                    minConstraints={[column.minWidth || 100, 40]}
-                    onResize={handleResize(column.id)}
-                    draggableOpts={{ enableUserSelectHack: false }}
-                    className="relative"
+                    column={column}
+                    onResize={(width) => {
+                      // Update only the resized column's width
+                      const newColumns = columns.map(col => 
+                        col.id === column.id ? { ...col, width } : col
+                      );
+                      
+                      // Calculate new total width by summing all column widths
+                      const newTotalWidth = newColumns.reduce((sum, col) => sum + col.width, 0) + 100;
+                      setTotalWidth(newTotalWidth);
+                      setColumns(newColumns);
+                      
+                      // Debounced API call to save width
+                      debouncedUpdateWidth(column.id.toString(), width);
+                      
+                      // Only notify parent of resize without expecting an API call
+                      if (onColumnResize) {
+                        onColumnResize(column.id.toString(), width);
+                      }
+                    }}
                   >
-                    <div
-                      className="h-full relative flex-shrink-0 border-r border-border"
-                      style={{ width: column.width }}
-                    >
-                      <div className="flex items-center h-full cursor-col-resize relative">
-                        <input
-                          type="text"
-                          value={column.header}
-                          onChange={(e) => {
-                            const newColumns = columns.map(col =>
-                              col.id === column.id ? { ...col, header: e.target.value } : col
-                            );
-                            setColumns(newColumns);
-                          }}
-                          className="absolute inset-0 bg-card border-none focus:outline-none focus:ring-0 focus:bg-background rounded-none px-4 py-2 w-full focus:z-30 transition-colors text-card-foreground"
-                        />
-                        <span className="pointer-events-none px-4 font-medium text-card-foreground">
-                          {column.header}
-                        </span>
-                      </div>
+                    <div className="flex items-center h-full cursor-col-resize relative">
+                      <input
+                        type="text"
+                        value={column.header}
+                        onChange={(e) => {
+                          const newColumns = columns.map(col =>
+                            col.id === column.id ? { ...col, header: e.target.value } : col
+                          );
+                          setColumns(newColumns);
+                          updateColumnMutation.mutate({
+                            columnId: column.id.toString(),
+                            name: e.target.value,
+                          });
+                        }}
+                        className="absolute inset-0 bg-card border-none focus:outline-none focus:ring-0 focus:bg-background rounded-none px-4 py-2 w-full focus:z-30 transition-colors text-card-foreground"
+                      />
+                      <span className="pointer-events-none px-4 font-medium text-card-foreground">
+                        {column.header}
+                      </span>
                     </div>
-                  </Resizable>
+                  </SortableColumn>
                 ))}
                 {/* Add Column button */}
                 <div 
@@ -308,7 +413,7 @@ export function ResizableSheet({ columns: initialColumns, data: initialData, onC
                   className="flex flex-1 border-b border-border hover:bg-muted/20"
                   style={{ width: totalWidth }}
                 >
-                  {columns.map((column) => (
+                  {columns.map((column: Column) => (
                     <div
                       key={column.id}
                       className="relative flex-shrink-0 border-r border-border"
