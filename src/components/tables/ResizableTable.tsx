@@ -131,7 +131,7 @@ function SortableRow({ row, rowIndex, columns, updateCell, totalWidth, errors }:
               >
                 <div className="h-full relative">
                   {hasError && (
-                    <div className="absolute -top-5 left-0 text-xs text-red-500 bg-background/95 px-2 py-1 z-50 whitespace-nowrap shadow-sm border border-red-200 rounded-md backdrop-blur-sm">
+                    <div className="absolute -top-5 left-0 text-xs text-white bg-red-500 px-2 py-1 z-50 whitespace-nowrap shadow-sm border border-red-400 rounded-md">
                       {errors[rowIndex.toString()][column.id]}
                     </div>
                   )}
@@ -142,9 +142,7 @@ function SortableRow({ row, rowIndex, columns, updateCell, totalWidth, errors }:
                     type="text"
                     value={row[column.id] || ''}
                     onChange={(e) => updateCell(rowIndex, column.id, e.target.value)}
-                    className={`absolute inset-0 bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-primary/10 hover:bg-accent/5 rounded-none px-4 py-2 w-full focus:z-30 text-foreground ${
-                      hasError ? 'bg-red-50/30 dark:bg-red-900/5 focus:ring-red-500/20' : ''
-                    }`}
+                    className={`absolute inset-0 bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-primary/10 hover:bg-accent/5 rounded-none px-4 py-2 w-full focus:z-30 text-foreground`}
                   />
                 </div>
               </div>
@@ -174,7 +172,9 @@ export function ResizableTable({ workspaceId, tableId: tableId, columns: initial
   const dataRef = useRef<HTMLDivElement>(null);
   const footerRef = useRef<HTMLDivElement>(null);
   const resizeTimeoutRef = useRef<NodeJS.Timeout>(null);
+  const updateTimeoutRef = useRef<NodeJS.Timeout>(null);
   const [errors, setErrors] = useState<Record<string, Record<string, string>>>({});
+  const pendingUpdatesRef = useRef<Record<number, Record<string, any>>>({});
 
   // Update local state when props change
   useEffect(() => {
@@ -221,9 +221,58 @@ export function ResizableTable({ workspaceId, tableId: tableId, columns: initial
   const updateTableDataMutation = useMutation({
     mutationFn: ({ dataId, data }: { dataId: number; data: Record<string, any> }) => 
       tablesApi.updateTableData(workspaceId, tableId, dataId, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['table-data', tableId] });
+    onMutate: async ({ dataId, data }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['table-data', tableId] });
+
+      // Snapshot the previous value
+      const previousData = queryClient.getQueryData(['table-data', tableId]);
+
+      // Optimistically update to the new value
+      queryClient.setQueryData(['table-data', tableId], (old: any[]) => {
+        return old?.map(row => {
+          if (row.id === dataId) {
+            return {
+              ...row,
+              data: Object.entries(data).reduce((acc, [key, value]) => {
+                acc[`${key}_${columns.find(col => col.id === key)?.type || 's'}`] = value;
+                return acc;
+              }, {} as Record<string, any>)
+            };
+          }
+          return row;
+        });
+      });
+
+      // Return a context object with the snapshotted value
+      return { previousData };
     },
+    onError: (err, variables, context) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      if (context?.previousData) {
+        queryClient.setQueryData(['table-data', tableId], context.previousData);
+      }
+      setIsSaving(false);
+      toast({
+        title: 'Error',
+        description: 'Failed to save changes',
+        variant: 'destructive',
+      });
+      console.error('Error updating table data:', err);
+    },
+    onSuccess: () => {
+      setIsSaving(false);
+      toast({
+        title: 'Success',
+        description: 'Changes saved successfully',
+      });
+    },
+    onSettled: () => {
+      // Only refetch if there was an error
+      if (updateTableDataMutation.isError) {
+        queryClient.invalidateQueries({ queryKey: ['table-data', tableId] });
+      }
+    }
   });
 
   const createTableDataMutation = useMutation({
@@ -315,8 +364,8 @@ export function ResizableTable({ workspaceId, tableId: tableId, columns: initial
   );
 
   // Add validation function
-  const validateValue = (value: string, type: ColumnType): { isValid: boolean; error?: string } => {
-    if (!value) return { isValid: true }; // Allow empty values
+  const validateValue = (value: string, type: ColumnType): { isValid: boolean; error?: string; convertedValue?: any } => {
+    if (!value) return { isValid: true, convertedValue: null }; // Allow empty values
 
     switch (type) {
       case 'i': // integer
@@ -324,25 +373,25 @@ export function ResizableTable({ workspaceId, tableId: tableId, columns: initial
         if (isNaN(num) || !Number.isInteger(num)) {
           return { isValid: false, error: 'Must be an integer' };
         }
-        return { isValid: true };
+        return { isValid: true, convertedValue: num };
 
       case 'f': // float
         const float = Number(value);
         if (isNaN(float)) {
           return { isValid: false, error: 'Must be a number' };
         }
-        return { isValid: true };
+        return { isValid: true, convertedValue: float };
 
       case 'd': // date
         const date = new Date(value);
         if (date.toString() === 'Invalid Date') {
           return { isValid: false, error: 'Must be a valid date' };
         }
-        return { isValid: true };
+        return { isValid: true, convertedValue: date.toISOString() };
 
       case 's': // string
       default:
-        return { isValid: true };
+        return { isValid: true, convertedValue: value };
     }
   };
 
@@ -354,6 +403,18 @@ export function ResizableTable({ workspaceId, tableId: tableId, columns: initial
     // Create an empty row without any initial values
     createTableDataMutation.mutate({});
   };
+
+  const debouncedSaveUpdates = useCallback(() => {
+    const updates = pendingUpdatesRef.current;
+    pendingUpdatesRef.current = {};
+
+    Object.entries(updates).forEach(([dataId, formattedData]) => {
+      updateTableDataMutation.mutate({
+        dataId: parseInt(dataId),
+        data: formattedData,
+      });
+    });
+  }, [updateTableDataMutation]);
 
   const updateCell = (rowIndex: number, columnId: string, value: string) => {
     const newData = [...data];
@@ -379,14 +440,46 @@ export function ResizableTable({ workspaceId, tableId: tableId, columns: initial
       }
     }));
 
-    // Only make API call if valid
+    // Only queue update if valid
     if (validation.isValid) {
       const dataId = (newData[rowIndex] as any).id;
       if (dataId) {
-        updateTableDataMutation.mutate({
-          dataId,
-          data: newData[rowIndex],
+        // Get or initialize the pending updates for this row
+        const currentUpdates = pendingUpdatesRef.current[dataId] || {};
+        
+        // Add the updated field with converted value
+        const actualColumnId = parseInt(column.id);
+        currentUpdates[actualColumnId.toString()] = validation.convertedValue;
+
+        // Add other fields that are not being updated
+        Object.entries(newData[rowIndex]).forEach(([key, val]) => {
+          if (key !== columnId && key !== 'id') {
+            const col = columns.find(c => c.id === key);
+            if (col) {
+              const colId = parseInt(col.id);
+              if (!currentUpdates[colId.toString()]) {
+                // Convert existing values too
+                const existingValidation = validateValue(val, col.type);
+                currentUpdates[colId.toString()] = existingValidation.convertedValue;
+              }
+            }
+          }
         });
+
+        // Store the updates
+        pendingUpdatesRef.current[dataId] = currentUpdates;
+
+        // Clear any existing timeout
+        if (updateTimeoutRef.current) {
+          clearTimeout(updateTimeoutRef.current);
+        }
+
+        setIsSaving(true);
+
+        // Set new timeout
+        updateTimeoutRef.current = setTimeout(() => {
+          debouncedSaveUpdates();
+        }, 1000);
       }
     }
   };
@@ -546,7 +639,7 @@ export function ResizableTable({ workspaceId, tableId: tableId, columns: initial
                       >
                         <div className="h-full relative">
                           {hasError && (
-                            <div className="absolute -top-5 left-0 text-xs text-red-500 bg-background/95 px-2 py-1 z-50 whitespace-nowrap shadow-sm border border-red-200 rounded-md backdrop-blur-sm">
+                            <div className="absolute -top-5 left-0 text-xs text-white bg-red-500 px-2 py-1 z-50 whitespace-nowrap shadow-sm border border-red-400 rounded-md">
                               {errors[rowIndex.toString()][column.id]}
                             </div>
                           )}
@@ -557,9 +650,7 @@ export function ResizableTable({ workspaceId, tableId: tableId, columns: initial
                             type="text"
                             value={row[column.id] || ''}
                             onChange={(e) => updateCell(rowIndex, column.id, e.target.value)}
-                            className={`absolute inset-0 bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-primary/10 hover:bg-accent/5 rounded-none px-4 py-2 w-full focus:z-30 text-foreground ${
-                              hasError ? 'bg-red-50/30 dark:bg-red-900/5 focus:ring-red-500/20' : ''
-                            }`}
+                            className={`absolute inset-0 bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-primary/10 hover:bg-accent/5 rounded-none px-4 py-2 w-full focus:z-30 text-foreground`}
                           />
                         </div>
                       </div>
