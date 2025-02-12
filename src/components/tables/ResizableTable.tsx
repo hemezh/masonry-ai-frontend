@@ -68,7 +68,7 @@ function SortableColumn({ column, onResize, children }: SortableColumnProps) {
         draggableOpts={{ enableUserSelectHack: false }}
         handle={
           <div className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize group-hover:bg-primary/10 transition-colors z-10 flex items-center justify-center">
-            <div className="w-px h-4 bg-border group-hover:bg-primary/25 transition-colors" />
+            <div className="w-px h-4 bg-border dark:bg-border/80 group-hover:bg-primary/25 transition-colors" />
           </div>
         }
         className="relative"
@@ -77,13 +77,13 @@ function SortableColumn({ column, onResize, children }: SortableColumnProps) {
           className="h-full relative flex-shrink-0 group"
           style={{ 
             width: column.width,
-            borderRight: '1px solid var(--border-color, #E5E7EB)',
-            borderBottom: '2px solid var(--border-color, #E5E7EB)',
+            borderRight: '1px solid hsl(var(--border) / 0.8)',
+            borderBottom: '2px solid hsl(var(--border) / 0.8)',
             background: 'hsl(var(--background))'
           }}
         >
           <div 
-            className="flex items-center h-full w-full cursor-move relative hover:bg-accent/50 transition-colors"
+            className="flex items-center h-full w-full cursor-move relative hover:bg-accent/50 dark:hover:bg-accent/20 transition-colors"
             {...listeners}
           >
             {children}
@@ -502,11 +502,11 @@ export function ResizableTable({ workspaceId, tableId: tableId, columns: initial
   return (
     <div className="relative h-[calc(100vh-12rem)] p-1 rounded-lg overflow-hidden border shadow-sm">
       {isSaving && (
-        <div className="absolute top-4 right-4 px-3 py-1.5 bg-emerald-50 text-emerald-600 text-sm rounded-md font-medium border border-emerald-200/50 shadow-sm">
+        <div className="absolute top-4 right-4 px-3 py-1.5 bg-emerald-50 text-emerald-600 text-sm rounded-md font-medium border border-emerald-200/50 shadow-sm dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-900">
           Saving changes...
         </div>
       )}
-      <div className="absolute inset-0 flex flex-col overflow-hidden bg-white">
+      <div className="absolute inset-0 flex flex-col overflow-hidden bg-background">
         <div className="flex-1 overflow-auto scrollbar-thin scrollbar-thumb-border hover:scrollbar-thumb-border/60 [scrollbar-gutter:stable]">
           <style jsx global>{`
             .scrollbar-thin {
@@ -532,8 +532,8 @@ export function ResizableTable({ workspaceId, tableId: tableId, columns: initial
           `}</style>
           <div className="min-w-full">
             {/* Header row */}
-            <div className="flex min-h-[40px] sticky top-0 z-10  shadow-sm">
-              <div className="flex flex-1 " style={{ width: totalWidth, background: 'hsl(var(--background))' }}>
+            <div className="flex min-h-[40px] sticky top-0 z-10 shadow-sm">
+              <div className="flex flex-1" style={{ width: totalWidth, background: 'white' }}>
                 {columns.map((column: Column) => (
                   <SortableColumn
                     key={column.id}
@@ -572,23 +572,22 @@ export function ResizableTable({ workspaceId, tableId: tableId, columns: initial
                             name: e.target.value,
                           });
                         }}
-                        className="absolute inset-0 bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-primary/10 rounded-none px-4 py-2 w-full focus:z-30 text-foreground font-medium"
+                        className="absolute inset-0 bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-primary/20 rounded-none px-4 py-2 w-full focus:z-30 text-foreground font-medium dark:focus:ring-primary/40"
                       />
                       <span className="pointer-events-none px-4 py-2 w-full truncate font-medium text-foreground">
                         {column.header}
                       </span>
-                      <div className="absolute right-0 top-1/2 -translate-y-1/2 w-px h-4/5 bg-border opacity-50 group-hover:opacity-100" />
+                      <div className="absolute right-0 top-1/2 -translate-y-1/2 w-px h-4/5 bg-border opacity-50 group-hover:opacity-100 dark:bg-border/80" />
                     </div>
                   </SortableColumn>
                 ))}
                 {/* Add Column button */}
                 <div 
-                  className="flex items-center justify-end px-2 border-r border-b-2 border-border min-w-[100px] flex-1"
-                  style={{ background: 'hsl(var(--background))' }}
+                  className="flex items-center justify-end px-2 border-r border-b-2 border-border min-w-[100px] flex-1 dark:border-border/80 bg-white dark:bg-background"
                 >
                   <button
                     onClick={() => setIsAddColumnDialogOpen(true)}
-                    className="p-1.5 text-muted-foreground hover:text-primary hover:bg-background/80 rounded-md transition-colors"
+                    className="p-1.5 text-muted-foreground hover:text-primary hover:bg-accent/20 rounded-md transition-colors"
                     title="Add Column"
                   >
                     <PlusIcon className="h-4 w-4" />
@@ -601,7 +600,7 @@ export function ResizableTable({ workspaceId, tableId: tableId, columns: initial
             {data.map((row, rowIndex) => (
               <div key={rowIndex} className="flex min-h-[40px] relative group">
                 <div 
-                  className="flex flex-1 border-b hover:bg-accent/5 transition-colors bg-white" 
+                  className="flex flex-1 border-b hover:bg-accent/5 transition-colors bg-white dark:bg-background dark:hover:bg-accent/20 dark:border-border/80" 
                   style={{ width: totalWidth }}
                 >
                   {columns.map((column: Column) => {
@@ -612,7 +611,7 @@ export function ResizableTable({ workspaceId, tableId: tableId, columns: initial
                         className="relative flex-shrink-0"
                         style={{ 
                           width: column.width,
-                          borderRight: '1px solid var(--border-color, #E5E7EB)'
+                          borderRight: '1px solid hsl(var(--border) / 0.8)'
                         }}
                       >
                         <div className="h-full relative">
@@ -628,14 +627,14 @@ export function ResizableTable({ workspaceId, tableId: tableId, columns: initial
                             type="text"
                             value={row[column.id] || ''}
                             onChange={(e) => updateCell(rowIndex, column.id, e.target.value)}
-                            className={`absolute inset-0 bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-primary/10 hover:bg-accent/5 rounded-none px-4 py-2 w-full focus:z-30 text-foreground`}
+                            className="absolute inset-0 bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-primary/20 hover:bg-accent/5 rounded-none px-4 py-2 w-full focus:z-30 text-foreground dark:hover:bg-accent/20 dark:focus:ring-primary/40"
                           />
                         </div>
                       </div>
                     );
                   })}
                   {/* Empty space */}
-                  <div className="border-r min-w-[100px] flex-1 bg-white" />
+                  <div className="border-r min-w-[100px] flex-1 bg-white dark:bg-background dark:border-border/80" />
                 </div>
               </div>
             ))}
@@ -644,10 +643,10 @@ export function ResizableTable({ workspaceId, tableId: tableId, columns: initial
 
         {/* Add Row button */}
         <div className="flex-shrink-0">
-          <div className="flex justify-left border-t border-border p-2 min-w-full" style={{ background: 'hsl(var(--background))' }}>
+          <div className="flex justify-left border-t border-border p-2 min-w-full dark:border-border/40" style={{ background: 'hsl(var(--background))' }}>
             <button
               onClick={addRow}
-              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary px-2 py-1 hover:bg-background/80 rounded-md transition-colors"
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary px-2 py-1 hover:bg-accent/10 rounded-md transition-colors"
               title="Add Row"
             >
               <PlusIcon className="h-4 w-4" />

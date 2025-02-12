@@ -134,40 +134,40 @@ export default function TablesPage() {
         {/* New Table Card */}
         <button
           onClick={() => setIsCreateTableOpen(true)}
-          className="h-[240px] rounded-lg border border-dashed border-border hover:border-primary/50 bg-background p-6 flex flex-col items-center justify-center gap-4 transition-colors group"
+          className="h-[240px] rounded-lg border border-dashed border-border hover:border-primary/50 bg-card p-6 flex flex-col items-center justify-center gap-4 transition-all group dark:bg-white/[.08] dark:hover:bg-white/[.12] dark:hover:border-primary/30 dark:shadow-lg"
         >
-          <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+          <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors dark:bg-primary/30 dark:group-hover:bg-primary/40">
             <PlusIcon className="h-6 w-6 text-primary" />
           </div>
           <div className="text-center">
-            <h3 className="font-medium text-foreground">Create New Table</h3>
-            <p className="text-sm text-muted-foreground">Start with a blank table</p>
+            <h3 className="font-medium text-foreground dark:text-slate-100">Create New Table</h3>
+            <p className="text-sm text-muted-foreground dark:text-slate-300">Start with a blank table</p>
           </div>
         </button>
 
         {/* Loading State */}
         {isLoadingTables && (
-          <div className="h-[240px] rounded-lg border bg-card p-6 flex items-center justify-center">
-            <div className="animate-pulse text-muted-foreground">Loading...</div>
+          <div className="h-[240px] rounded-lg border bg-card p-6 flex items-center justify-center dark:bg-white/[.08] dark:shadow-lg">
+            <div className="animate-pulse text-muted-foreground dark:text-slate-300">Loading...</div>
           </div>
         )}
 
         {/* Existing Tables */}
         {tables?.map((table: Table) => (
-          <div key={table.id} className="group relative h-[240px] rounded-lg border bg-card p-5 text-left shadow-sm hover:shadow-md transition-shadow flex flex-col">
+          <div key={table.id} className="group relative h-[240px] rounded-lg border border-border/40 bg-card p-5 text-left shadow-sm transition-all hover:shadow-md hover:border-border/80 dark:bg-white/[.08] dark:hover:bg-white/[.12] dark:shadow-lg dark:hover:border-border/80 flex flex-col dark:hover:shadow-xl">
             <div className="flex items-start justify-between relative z-10">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center dark:bg-primary/30">
                   <TableCellsIcon className="h-5 w-5 text-primary" />
                 </div>
-                <div className="flex items-center text-xs text-muted-foreground">
+                <div className="flex items-center text-xs dark:text-slate-300">
                   <span className="font-medium">{table.columns?.columns?.length || 0}</span>
                   <span className="ml-1">columns</span>
                 </div>
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
+                  <Button variant="ghost" className="h-8 w-8 p-0 dark:text-slate-100" onClick={(e) => e.stopPropagation()}>
                     <EllipsisVerticalIcon className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -203,14 +203,14 @@ export default function TablesPage() {
               <span className="sr-only">View table {table.name}</span>
             </button>
             <div className="mt-3 relative z-10 pointer-events-none flex-1">
-              <h3 className="font-medium text-foreground group-hover:text-primary transition-colors">
+              <h3 className="font-medium text-foreground dark:text-slate-100">
                 {table.name}
               </h3>
-              <p className="mt-1.5 text-sm text-muted-foreground line-clamp-2">
+              <p className="mt-1.5 text-sm text-muted-foreground dark:text-slate-300 line-clamp-2">
                 {table.description || 'No description'}
               </p>
             </div>
-            <div className="text-xs text-muted-foreground border-t pt-2 mt-auto relative z-10 pointer-events-none">
+            <div className="text-xs text-muted-foreground dark:text-slate-400 border-t border-border/40 dark:border-slate-600 pt-2 mt-auto relative z-10 pointer-events-none">
               Updated {formatDate(table.updated_at)}
             </div>
           </div>
@@ -218,10 +218,10 @@ export default function TablesPage() {
       </div>
 
       <AlertDialog open={!!tableToDelete} onOpenChange={(open) => !open && setTableToDelete(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-background">
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogDescription className="text-muted-foreground">
               This will permanently delete the table &quot;{tableToDelete?.name}&quot; and all its data.
               This action cannot be undone.
             </AlertDialogDescription>
@@ -229,7 +229,7 @@ export default function TablesPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 dark:hover:bg-destructive/80"
               onClick={() => tableToDelete && deleteTableMutation.mutate(tableToDelete.id)}
             >
               Delete
@@ -242,7 +242,7 @@ export default function TablesPage() {
       <Dialog open={!!tableToEdit} onOpenChange={(open) => {
         if (!open) setTableToEdit(null);
       }}>
-        <DialogContent>
+        <DialogContent className="bg-background">
           <DialogHeader>
             <DialogTitle>Edit Table</DialogTitle>
           </DialogHeader>
@@ -254,6 +254,7 @@ export default function TablesPage() {
                   id="name"
                   value={editForm.name}
                   onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                  className="bg-background"
                   required
                 />
               </div>
@@ -264,6 +265,7 @@ export default function TablesPage() {
                   value={editForm.description}
                   onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
                   placeholder="Add a description..."
+                  className="bg-background"
                   rows={3}
                 />
               </div>
@@ -273,6 +275,7 @@ export default function TablesPage() {
                 type="button"
                 variant="outline"
                 onClick={() => setTableToEdit(null)}
+                className="border-border"
               >
                 Cancel
               </Button>
