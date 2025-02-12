@@ -219,7 +219,7 @@ function WorkflowChatPageContent() {
         setIsInitialLoad(false);
         setInitialPrompt(promptParam || '');
         if (promptParam) {
-          router.replace(`/dashboard/workflows/${chatId}`);
+          router.replace(`/dashboard/chat/${chatId}`);
         }
 
       } catch (error) {

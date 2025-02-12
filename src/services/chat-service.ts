@@ -232,8 +232,11 @@ class ChatService {
         onMessage: (message: ChatMessage) => void
     ): Promise<void> {
         try {
+
+            const token = localStorage.getItem('auth_token');
             const headers = {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
                 ...(apiClient.defaults.headers.common as Record<string, string>)
             };
 
