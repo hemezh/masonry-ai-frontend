@@ -13,6 +13,8 @@ import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2 } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const COLUMN_TYPE_OPTIONS = [
   { value: 's' as const, label: 'String' },
@@ -75,7 +77,7 @@ export function CSVImportDialog({
       const text = await file.text();
       const result: ParseResult = await new Promise((resolve, reject) => {
         Papa.parse(text, {
-          preview: MAX_PREVIEW_ROWS + 1, // +1 for header
+          preview: MAX_PREVIEW_ROWS + 1,
           error: reject,
           complete: resolve,
         });
@@ -85,9 +87,13 @@ export function CSVImportDialog({
         throw new Error('CSV file is empty');
       }
 
-      // Prepare data for type inference
-      const headers = result.data[0];
-      const samples = result.data.slice(1).map(row => 
+      // Generate numbered headers if no headers are present
+      const firstRow = result.data[0];
+      const headers = firstRow.map((_, idx) => `Column ${idx + 1}`);
+      
+      // For type inference, use all rows if no header, otherwise skip first row
+      const dataRows = result.data;
+      const samples = dataRows.map(row => 
         headers.reduce<Record<string, string>>((acc, header, idx) => ({
           ...acc,
           [header]: row[idx] || ''
@@ -104,7 +110,8 @@ export function CSVImportDialog({
 
       setPreviewData({
         headers,
-        rows: result.data.slice(1, MAX_PREVIEW_ROWS + 1)
+        // When skipFirstRow is false, include all rows in preview
+        rows: result.data.slice(0, MAX_PREVIEW_ROWS)
       });
       setColumnTypes(inferenceResponse.types);
       setSkipFirstRow(inferenceResponse.shouldSkipFirstRow);
@@ -137,11 +144,18 @@ export function CSVImportDialog({
 
     setIsLoading(true);
     try {
+      // Convert column types to the expected format
+      const columnTypesObj: Record<string, string> = {};
+      previewData.headers.forEach((header) => {
+        columnTypesObj[header] = columnTypes[header] || 's';
+      });
+
       await onSubmit({
         file,
         skipFirstRow,
-        columnTypes
+        columnTypes: columnTypesObj
       });
+      
       setFile(null);
       setPreviewData(null);
       setSkipFirstRow(false);
@@ -156,149 +170,147 @@ export function CSVImportDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-background max-w-3xl">
-        <DialogHeader>
+      <DialogContent className="bg-background  max-w-[850px] h-[90vh] p-0 flex flex-col gap-0 overflow-hidden">
+        <DialogHeader className="p-6 pb-2">
           <DialogTitle>Import CSV</DialogTitle>
           <DialogDescription>
             Upload a CSV file to create a new table. We'll automatically detect column types.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <div className="grid gap-6 py-4">
-            {!file && (
-              <div 
-                {...getRootProps()} 
-                className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors
-                  ${isDragActive ? 'border-primary bg-primary/5' : 'border-border'}`}
-              >
-                <input {...getInputProps()} />
-                <p className="text-muted-foreground">
-                  {isDragActive
-                    ? "Drop the CSV file here"
-                    : "Drag and drop a CSV file here, or click to select"}
-                </p>
-              </div>
-            )}
-
-            {isInferring && (
-              <div className="flex items-center justify-center space-x-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Analyzing CSV structure...</span>
-              </div>
-            )}
-
-            {previewData && (
-              <>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="skipHeader"
-                    checked={skipFirstRow}
-                    onCheckedChange={setSkipFirstRow}
-                  />
-                  <Label htmlFor="skipHeader">First row is header</Label>
-                </div>
-
-                {inferenceReasoning && (
-                  <div className="bg-muted p-4 rounded-lg">
-                    <p className="text-sm text-muted-foreground">{inferenceReasoning}</p>
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+          <ScrollArea className="flex-1">
+            <div className="px-6 pt-2 pb-6  max-w-[800px]">
+              <div className="grid gap-4 max-w-[800px]">
+                {!file && (
+                  <div 
+                    {...getRootProps()} 
+                    className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors
+                      ${isDragActive ? 'border-primary bg-primary/5' : 'border-border'}`}
+                  >
+                    <input {...getInputProps()} />
+                    <p className="text-muted-foreground">
+                      {isDragActive
+                        ? "Drop the CSV file here"
+                        : "Drag and drop a CSV file here, or click to select"}
+                    </p>
                   </div>
                 )}
 
-                <div className="space-y-4">
-                  <h3 className="font-medium">Column Types</h3>
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {previewData.headers.map((header, index) => (
-                      <div key={index} className="space-y-2">
-                        <Label>
-                          {skipFirstRow ? header : `Column ${index + 1}`}
-                        </Label>
-                        <Select
-                          value={columnTypes[header] || 's'}
-                          onValueChange={(value) => 
-                            setColumnTypes(prev => ({
-                              ...prev,
-                              [header]: value
-                            }))
-                          }
-                        >
-                          <SelectTrigger className="bg-background">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {COLUMN_TYPE_OPTIONS.map(type => (
-                              <SelectItem key={type.value} value={type.value}>
-                                {type.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    ))}
+                {isInferring && (
+                  <div className="flex items-center justify-center space-x-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Analyzing CSV structure...</span>
                   </div>
-                </div>
+                )}
 
-                <div className="space-y-2">
-                  <h3 className="font-medium">Preview</h3>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-border">
-                      <thead>
-                        <tr className={skipFirstRow ? 'bg-muted/50' : ''}>
-                          {previewData.headers.map((header, i) => (
-                            <th key={i} className="px-4 py-2 text-left text-sm font-medium">
-                              {skipFirstRow ? header : `Column ${i + 1}`}
-                            </th>
+                {previewData && (
+                  <>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="skipHeader"
+                        checked={skipFirstRow}
+                        onCheckedChange={setSkipFirstRow}
+                      />
+                      <Label htmlFor="skipHeader">First row is header</Label>
+                    </div>
+
+                    {inferenceReasoning && (
+                      <Card className="max-w-[800px]">
+                        <CardHeader className="py-3">
+                          <CardTitle className="text-sm">Analysis</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-sm text-muted-foreground">{inferenceReasoning}</p>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    <Card className="max-w-[800px]">
+                      <CardHeader className="py-3">
+                        <CardTitle>Column Types</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid gap-3 grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                          {previewData.headers.map((header, index) => (
+                            <div key={index} className="flex flex-col gap-1.5">
+                              <Label className="text-sm text-muted-foreground truncate" title={skipFirstRow ? header : `Column ${index + 1}`}>
+                                {skipFirstRow ? header : `Column ${index + 1}`}
+                              </Label>
+                              <Select
+                                value={columnTypes[header] || 's'}
+                                onValueChange={(value) => 
+                                  setColumnTypes(prev => ({
+                                    ...prev,
+                                    [header]: value
+                                  }))
+                                }
+                              >
+                                <SelectTrigger className="bg-background h-8">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {COLUMN_TYPE_OPTIONS.map(type => (
+                                    <SelectItem key={type.value} value={type.value}>
+                                      {type.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
                           ))}
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border">
-                        {previewData.rows.map((row, i) => (
-                          <tr key={i}>
-                            {row.map((cell, j) => (
-                              <td key={j} className="px-4 py-2 text-sm">
-                                {cell}
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
 
-          <DialogFooter>
+                    <Card className="max-w-[800px]">
+                      <CardHeader className="py-3">
+                        <CardTitle>Preview</CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-0">
+                        <div className="overflow-x-auto">
+                            <table className="w-full divide-y divide-border min-w-full">
+                              <thead className="sticky top-0 bg-background">
+                                <tr className={skipFirstRow ? 'bg-muted/50' : ''}>
+                                  {previewData.headers.map((header, i) => (
+                                    <th key={i} className="px-4 py-2 text-left text-sm font-medium whitespace-nowrap">
+                                      {header}
+                                    </th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-border">
+                                {previewData.rows.map((row, i) => (
+                                  <tr key={i} className={skipFirstRow && i === 0 ? 'bg-muted/50' : ''}>
+                                    {row.map((cell, j) => (
+                                      <td key={j} className="px-4 py-2 text-sm whitespace-nowrap">
+                                        {cell}
+                                      </td>
+                                    ))}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </>
+                )}
+              </div>
+            </div>
+          </ScrollArea>
+          <div className="flex justify-end gap-2 p-6 pt-2 border-t">
             <Button
               type="button"
               variant="outline"
-              onClick={() => {
-                onOpenChange(false);
-                setFile(null);
-                setPreviewData(null);
-                setSkipFirstRow(false);
-                setColumnTypes({});
-                setInferenceReasoning('');
-              }}
-              className="border-border"
+              onClick={() => onOpenChange(false)}
               disabled={isLoading}
             >
               Cancel
             </Button>
-            <Button 
-              type="submit" 
-              disabled={!file || isLoading || isInferring}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Importing...
-                </>
-              ) : (
-                'Import CSV'
-              )}
+            <Button type="submit" disabled={isLoading || !file}>
+              {isLoading ? 'Importing...' : 'Import CSV'}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
       </DialogContent>
     </Dialog>

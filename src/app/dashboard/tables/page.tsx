@@ -266,10 +266,11 @@ export default function TablesPage() {
         workspaceId={currentWorkspace?.id || ''}
         onSubmit={async (data: CSVImportData) => {
           if (!currentWorkspace) throw new Error('No workspace selected');
+          
           const formData = new FormData();
-          formData.append("file", data.file);
-          formData.append("skipFirstRow", data.skipFirstRow.toString());
-          formData.append("columns", JSON.stringify(data.columnTypes));
+          formData.append('file', data.file);
+          formData.append('skipFirstRow', data.skipFirstRow.toString());
+          formData.append('columns', JSON.stringify(data.columnTypes));
 
           const table = await createTableFromCSV(formData);
           if (table) {

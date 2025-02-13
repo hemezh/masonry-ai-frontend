@@ -237,13 +237,20 @@ export const tablesApi = {
   },
 
   async createTableFromCSV(workspaceId: string, formData: FormData): Promise<{ id: string }> {
-    const response = await fetchApi(`/workspaces/${workspaceId}/tables/import-csv`, {
+    const auth = getAuth();
+    const token = await auth.currentUser?.getIdToken();
+
+    const response = await fetch(`${API_BASE}/workspaces/${workspaceId}/tables/import-csv`, {
       method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
       body: formData,
     });
 
     if (!response.ok) {
-      throw new Error('Failed to create table from CSV');
+      const error = await response.text();
+      throw new Error(`Failed to create table from CSV: ${error}`);
     }
 
     return response.json();
