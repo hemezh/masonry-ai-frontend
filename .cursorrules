@@ -29,7 +29,7 @@
     - Implement consistent design and responsive patterns across platforms.
 
     ### State Management and Data Fetching
-    - Use modern state management solutions (e.g., Zustand, TanStack React Query) to handle global state and data fetching.
+    - Use modern state management solutions (e.g., TanStack React Query) to handle global state and data fetching.
     - Implement validation using Zod for schema validation.
 
     ### Security and Performance

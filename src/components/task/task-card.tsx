@@ -106,7 +106,7 @@ export function TaskCard({ task, index, onDelete, onConfigureClick }: TaskCardPr
     const statusStyle = TASK_STATUS_STYLES[task.status as keyof typeof TASK_STATUS_STYLES];
 
     return (
-        <div className="bg-card rounded-lg border border-border/60 shadow-sm p-3 relative h-48 flex flex-col overflow-hidden transition-all hover:shadow-md">
+        <div className="bg-card dark:bg-background rounded-lg border border-border/60 shadow-sm p-3 relative h-48 flex flex-col overflow-hidden transition-all hover:shadow-md">
             {/* Accent border */}
             <div 
                 className="absolute left-0 top-0 rounded-tl-lg rounded-bl-lg bottom-0 w-1 opacity-60" 

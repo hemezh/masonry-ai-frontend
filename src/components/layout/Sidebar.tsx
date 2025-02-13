@@ -15,7 +15,7 @@ const navigation = [
     { name: 'Tasks', href: '/dashboard/tasks', icon: ClipboardDocumentListIcon },
     {
         name: 'Tables',
-        href: '/dashboard/sheets',
+        href: '/dashboard/tables',
         icon: TableCellsIcon,
         current: false,
     },
