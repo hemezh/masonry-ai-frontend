@@ -14,6 +14,7 @@ export interface Column {
   type: ColumnType;
   description?: string;
   width?: number;
+  samples?: string[];
 }
 
 export const ColumnSchema = z.object({
@@ -22,6 +23,7 @@ export const ColumnSchema = z.object({
   type: ColumnTypeSchema,
   description: z.string().optional(),
   width: z.number().optional(),
+  samples: z.array(z.string()).optional(),
 }).transform((data): Column => ({
   ...data,
   type: data.type || 's', // Default to string type if empty
@@ -37,9 +39,11 @@ export const TableSchema = z.object({
   }).default({ columns: [] }),
   created_at: z.string(),
   updated_at: z.string(),
+  archived: z.boolean().default(false),
 }).transform((data) => ({
   ...data,
   columns: data.columns || { columns: [] },
+  archived: data.archived || false,
 }));
 
 // Schema for column addition response
@@ -84,6 +88,17 @@ const fetchApi = async (endpoint: string, options?: RequestInit) => {
 
   return response;
 };
+
+export interface TypeInferenceRequest {
+  name: string;
+  samples: string[];
+}
+
+export interface TypeInferenceResponse {
+  types: Record<string, ColumnType>;
+  shouldSkipFirstRow: boolean;
+  reasoning: string;
+}
 
 export const tablesApi = {
   // Create a new table
@@ -221,11 +236,48 @@ export const tablesApi = {
     return response.json();
   },
 
-  createTableFromCSV: async (workspaceId: string, formData: FormData) => {
+  async createTableFromCSV(workspaceId: string, formData: FormData): Promise<{ id: string }> {
     const response = await fetchApi(`/workspaces/${workspaceId}/tables/import-csv`, {
       method: 'POST',
       body: formData,
     });
+
+    if (!response.ok) {
+      throw new Error('Failed to create table from CSV');
+    }
+
     return response.json();
+  },
+
+  // Infer column types using AI
+  async inferColumnTypes(columns: TypeInferenceRequest[]): Promise<TypeInferenceResponse> {
+    const response = await fetchApi('/ai/infer-types', {
+      method: 'POST',
+      body: JSON.stringify({ columns }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to infer column types');
+    }
+
+    return response.json();
+  },
+
+  // Archive a table
+  archiveTable: async (workspaceId: string, id: string) => {
+    const response = await fetchApi(`/workspaces/${workspaceId}/tables/${id}/archive`, {
+      method: 'POST',
+    });
+    
+    return TableSchema.parse(await response.json());
+  },
+
+  // Unarchive a table
+  unarchiveTable: async (workspaceId: string, id: string) => {
+    const response = await fetchApi(`/workspaces/${workspaceId}/tables/${id}/unarchive`, {
+      method: 'POST',
+    });
+    
+    return TableSchema.parse(await response.json());
   },
 } as const; 

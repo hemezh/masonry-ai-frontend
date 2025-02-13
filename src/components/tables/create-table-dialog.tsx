@@ -1,126 +1,101 @@
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { tablesApi } from '@/lib/api/tables';
-import { useWorkspace } from '@/contexts/workspace-context';
+import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-  FormDescription,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+} from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { tablesApi } from '@/lib/api/tables';
 import { toast } from 'sonner';
 
-const formSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  description: z.string().optional(),
-});
-
-type FormValues = z.infer<typeof formSchema>;
-
-interface CreateTableDialogProps {
-  isOpen: boolean;
+export interface CreateTableDialogProps {
+  open: boolean;
   onOpenChange: (open: boolean) => void;
+  workspaceId: string;
+  onSuccess: () => void;
 }
 
-export function CreateTableDialog({ isOpen, onOpenChange }: CreateTableDialogProps) {
-  const { currentWorkspace } = useWorkspace();
-  const queryClient = useQueryClient();
-
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: '',
-      description: '',
-    },
+export function CreateTableDialog({ open, onOpenChange, workspaceId, onSuccess }: CreateTableDialogProps) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [form, setForm] = useState({
+    name: '',
+    description: ''
   });
 
-  const createTableMutation = useMutation({
-    mutationFn: async (data: FormValues) => {
-      if (!currentWorkspace) {
-        throw new Error('No workspace selected');
-      }
-      return tablesApi.createTable(currentWorkspace.id, data);
-    },
-    onSuccess: () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!workspaceId) {
+      toast.error('No workspace selected');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await tablesApi.createTable(workspaceId, {
+        name: form.name,
+        description: form.description
+      });
       toast.success('Table created successfully');
-      queryClient.invalidateQueries({ queryKey: ['tables', currentWorkspace?.id] });
+      onSuccess();
       onOpenChange(false);
-      form.reset();
-    },
-    onError: (error) => {
-      toast.error(`Failed to create table: ${error.message}`);
-    },
-  });
-
-  const onSubmit = (data: FormValues) => {
-    createTableMutation.mutate(data);
+      setForm({ name: '', description: '' });
+    } catch (error) {
+      toast.error('Failed to create table: ' + (error as Error).message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="bg-background">
         <DialogHeader>
           <DialogTitle>Create New Table</DialogTitle>
         </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Table Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter table name" {...field} />
-                  </FormControl>
-                  <FormDescription>A descriptive name for your table</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="Enter table description" {...field} />
-                  </FormControl>
-                  <FormDescription>A brief description of what this table is for</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={createTableMutation.isPending}>
-                {createTableMutation.isPending ? 'Creating...' : 'Create Table'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+        <form onSubmit={handleSubmit}>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                value={form.name}
+                onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
+                className="bg-background"
+                required
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={form.description}
+                onChange={(e) => setForm(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Add a description..."
+                className="bg-background"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              className="border-border"
+              disabled={isLoading}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? 'Creating...' : 'Create Table'}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );
