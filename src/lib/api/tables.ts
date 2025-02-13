@@ -100,6 +100,24 @@ export interface TypeInferenceResponse {
   reasoning: string;
 }
 
+export interface TableDataResponse {
+  id: number;
+  table_id: string;
+  data: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  pagination: {
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+  };
+}
+
 export const tablesApi = {
   // Create a new table
   createTable: async (workspaceId: string, data: { name: string; description?: string }) => {
@@ -188,9 +206,13 @@ export const tablesApi = {
   },
 
   // List table data
-  listTableData: async (workspaceId: string, tableId: string) => {
-    const response = await fetchApi(`/workspaces/${workspaceId}/tables/${tableId}/data`);
-    return z.array(TableDataSchema).parse(await response.json());
+  listTableData: async (workspaceId: string, tableId: string, page: number = 1, pageSize: number = 50): Promise<PaginatedResponse<TableDataResponse>> => {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      pageSize: pageSize.toString(),
+    });
+    const response = await fetchApi(`/workspaces/${workspaceId}/tables/${tableId}/data?${params.toString()}`);
+    return response.json();
   },
 
   // Update table data
