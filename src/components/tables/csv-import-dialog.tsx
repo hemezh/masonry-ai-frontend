@@ -26,7 +26,7 @@ const COLUMN_TYPE_OPTIONS = [
 export interface CSVImportData {
   file: File;
   skipFirstRow: boolean;
-  columnTypes: Record<string, string>;
+  columnTypes: string[];
 }
 
 export interface CSVImportDialogProps {
@@ -50,7 +50,7 @@ interface ParseResult {
 const MAX_PREVIEW_ROWS = 5;
 
 interface TypeInferenceResponse {
-  types: Record<string, string>;
+  types: string[];
   shouldSkipFirstRow: boolean;
   reasoning: string;
 }
@@ -65,7 +65,7 @@ export function CSVImportDialog({
   const [file, setFile] = useState<File | null>(null);
   const [previewData, setPreviewData] = useState<PreviewData | null>(null);
   const [skipFirstRow, setSkipFirstRow] = useState(false);
-  const [columnTypes, setColumnTypes] = useState<Record<string, string>>({});
+  const [columnTypes, setColumnTypes] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [inferenceReasoning, setInferenceReasoning] = useState<string>('');
   const [isInferring, setIsInferring] = useState(false);
@@ -110,10 +110,12 @@ export function CSVImportDialog({
 
       setPreviewData({
         headers,
-        // When skipFirstRow is false, include all rows in preview
         rows: result.data.slice(0, MAX_PREVIEW_ROWS)
       });
-      setColumnTypes(inferenceResponse.types);
+      
+      // Convert types object to array in the same order as headers
+      const typesArray = headers.map(header => inferenceResponse.types[header] || 's');
+      setColumnTypes(typesArray);
       setSkipFirstRow(inferenceResponse.shouldSkipFirstRow);
       setInferenceReasoning(inferenceResponse.reasoning);
       setFile(file);
@@ -144,25 +146,54 @@ export function CSVImportDialog({
 
     setIsLoading(true);
     try {
-      // Convert column types to the expected format
-      const columnTypesObj: Record<string, string> = {};
-      previewData.headers.forEach((header) => {
-        columnTypesObj[header] = columnTypes[header] || 's';
+      // Log column types for debugging
+      console.log('Submitting CSV import with column types:');
+      previewData.headers.forEach((header, index) => {
+        console.log(`Column ${index + 1} (${header}): ${columnTypes[index] || 's'}`);
       });
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('skipFirstRow', skipFirstRow.toString());
+      formData.append('columns', JSON.stringify(columnTypes));
 
       await onSubmit({
         file,
         skipFirstRow,
-        columnTypes: columnTypesObj
+        columnTypes
       });
       
       setFile(null);
       setPreviewData(null);
       setSkipFirstRow(false);
-      setColumnTypes({});
+      setColumnTypes([]);
       setInferenceReasoning('');
     } catch (error) {
-      toast.error('Error importing CSV: ' + (error as Error).message);
+      console.error('CSV Import Error:', error);
+      let errorMessage = (error as Error).message;
+      
+      // Check if the error contains column information
+      if (errorMessage.includes('column type mismatch') || 
+          errorMessage.includes('invalid column type')) {
+        // Format the error message for better readability
+        errorMessage = errorMessage.split('\n').map(line => 
+          line.trim()
+        ).join('\n');
+        
+        toast.error(
+          <div className="space-y-2">
+            <p className="font-semibold">CSV Import Error:</p>
+            <pre className="whitespace-pre-wrap text-sm bg-secondary/50 p-2 rounded">
+              {errorMessage}
+            </pre>
+          </div>,
+          {
+            duration: 10000, // Show for 10 seconds due to longer message
+          }
+        );
+      } else {
+        toast.error('Error importing CSV: ' + errorMessage);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -237,13 +268,12 @@ export function CSVImportDialog({
                                 {skipFirstRow ? header : `Column ${index + 1}`}
                               </Label>
                               <Select
-                                value={columnTypes[header] || 's'}
-                                onValueChange={(value) => 
-                                  setColumnTypes(prev => ({
-                                    ...prev,
-                                    [header]: value
-                                  }))
-                                }
+                                value={columnTypes[index] || 's'}
+                                onValueChange={(value) => {
+                                  const newTypes = [...columnTypes];
+                                  newTypes[index] = value;
+                                  setColumnTypes(newTypes);
+                                }}
                               >
                                 <SelectTrigger className="bg-background h-8">
                                   <SelectValue />
