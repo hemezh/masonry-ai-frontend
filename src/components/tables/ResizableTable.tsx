@@ -4,7 +4,8 @@ import { PlusIcon } from '@heroicons/react/24/outline';
 import { DndContext, DragEndEvent, MouseSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { tablesApi, type ColumnType } from '@/lib/api/tables';
 import { AddColumnDialog } from './add-column-dialog';
 import { toast } from 'sonner';
@@ -23,7 +24,6 @@ interface ResizableTableProps {
   workspaceId: string;
   tableId: string;
   columns: Column[];
-  data: Record<string, any>[];
   onColumnResize?: (columnId: string, width: number) => void;
 }
 
@@ -50,7 +50,10 @@ function SortableColumn({ column, onResize, children }: SortableColumnProps) {
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: column.id.toString() });
+  } = useSortable({
+    id: column.id.toString(),
+    data: column,
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -102,7 +105,10 @@ function SortableRow({ row, rowIndex, columns, updateCell, totalWidth, errors }:
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: rowIndex.toString() });
+  } = useSortable({
+    id: rowIndex.toString(),
+    data: row,
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -156,24 +162,113 @@ function SortableRow({ row, rowIndex, columns, updateCell, totalWidth, errors }:
   );
 }
 
-export function ResizableTable({ workspaceId, tableId: tableId, columns: initialColumns, data: initialData, onColumnResize }: ResizableTableProps) {
+// Add validateValue function
+const validateValue = (value: string, type: ColumnType): { isValid: boolean; error?: string; convertedValue?: any } => {
+  if (!value) return { isValid: true, convertedValue: null }; // Allow empty values
+
+  switch (type) {
+    case 'i': // integer
+      const num = Number(value);
+      if (isNaN(num) || !Number.isInteger(num)) {
+        return { isValid: false, error: 'Must be an integer' };
+      }
+      return { isValid: true, convertedValue: num };
+
+    case 'f': // float
+      const float = Number(value);
+      if (isNaN(float)) {
+        return { isValid: false, error: 'Must be a number' };
+      }
+      return { isValid: true, convertedValue: float };
+
+    case 'd': // date
+      const date = new Date(value);
+      if (date.toString() === 'Invalid Date') {
+        return { isValid: false, error: 'Must be a valid date' };
+      }
+      return { isValid: true, convertedValue: date.toISOString() };
+
+    case 's': // string
+    default:
+      return { isValid: true, convertedValue: value };
+  }
+};
+
+export function ResizableTable({ workspaceId, tableId, columns: initialColumns, onColumnResize }: ResizableTableProps) {
   const queryClient = useQueryClient();
   const [columns, setColumns] = useState<Column[]>(initialColumns);
   const [columnOrder, setColumnOrder] = useState(() => 
     initialColumns.map(col => col.id.toString())
   );
-  const [data, setData] = useState(initialData);
   const [totalWidth, setTotalWidth] = useState(() => 
     initialColumns.reduce((sum, col) => sum + col.width, 0) + 100
   );
   const [isSaving, setIsSaving] = useState(false);
   const [isAddColumnDialogOpen, setIsAddColumnDialogOpen] = useState(false);
-  const dataRef = useRef<HTMLDivElement>(null);
-  const footerRef = useRef<HTMLDivElement>(null);
-  const resizeTimeoutRef = useRef<NodeJS.Timeout>(null);
-  const updateTimeoutRef = useRef<NodeJS.Timeout>(null);
+  const parentRef = useRef<HTMLDivElement>(null);
+  const resizeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [errors, setErrors] = useState<Record<string, Record<string, string>>>({});
   const pendingUpdatesRef = useRef<Record<number, Record<string, any>>>({});
+
+  // Fetch paginated data
+  const {
+    data: infiniteData,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    status,
+  } = useInfiniteQuery({
+    queryKey: ['table-data', tableId],
+    queryFn: ({ pageParam = 1 }) => 
+      tablesApi.listTableData(workspaceId, tableId, pageParam, 50),
+    getNextPageParam: (lastPage) => {
+      if (lastPage.pagination.page < lastPage.pagination.totalPages) {
+        return lastPage.pagination.page + 1;
+      }
+      return undefined;
+    },
+    initialPageParam: 1,
+    staleTime: 5000, // Add staleTime to prevent unnecessary refetches
+    refetchOnWindowFocus: false, // Disable refetch on window focus
+  });
+
+  // Flatten the paginated data
+  const flatData = infiniteData?.pages.flatMap(page => page.data) ?? [];
+  const totalRows = infiniteData?.pages[0]?.pagination.total ?? 0;
+
+  // Set up virtualizer with actual data length
+  const rowVirtualizer = useVirtualizer({
+    count: flatData.length || 0, // Use actual data length instead of total
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 40, // row height
+    overscan: 10,
+    scrollMargin: 0,
+    scrollPaddingStart: 0,
+    scrollPaddingEnd: 0,
+    horizontal: false,
+  });
+
+  // Load more data when scrolling - with better threshold calculation
+  useEffect(() => {
+    const scrollElement = parentRef.current;
+    if (!scrollElement) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = scrollElement;
+      // Load more when within 2 screen heights of the bottom
+      if (scrollHeight - scrollTop - clientHeight < clientHeight * 2 && hasNextPage && !isFetchingNextPage) {
+        void fetchNextPage();
+      }
+    };
+
+    scrollElement.addEventListener('scroll', handleScroll);
+    return () => {
+      if (scrollElement) {
+        scrollElement.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   // Update local state when props change
   useEffect(() => {
@@ -181,10 +276,6 @@ export function ResizableTable({ workspaceId, tableId: tableId, columns: initial
     setColumnOrder(initialColumns.map(col => col.id.toString()));
     setTotalWidth(initialColumns.reduce((sum, col) => sum + col.width, 0) + 100);
   }, [initialColumns]);
-
-  useEffect(() => {
-    setData(initialData);
-  }, [initialData]);
 
   const sensors = useSensors(
     useSensor(MouseSensor, {
@@ -228,22 +319,28 @@ export function ResizableTable({ workspaceId, tableId: tableId, columns: initial
       const previousData = queryClient.getQueryData(['table-data', tableId]);
 
       // Optimistically update to the new value
-      queryClient.setQueryData(['table-data', tableId], (old: any[]) => {
-        return old?.map(row => {
-          if (row.id === dataId) {
-            return {
-              ...row,
-              data: Object.entries(data).reduce((acc, [key, value]) => {
-                acc[`${key}_${columns.find(col => col.id === key)?.type || 's'}`] = value;
-                return acc;
-              }, {} as Record<string, any>)
-            };
-          }
-          return row;
-        });
+      queryClient.setQueryData(['table-data', tableId], (old: any) => {
+        if (!old?.pages) return old;
+        return {
+          ...old,
+          pages: old.pages.map((page: any) => ({
+            ...page,
+            data: page.data.map((row: any) => {
+              if (row.id === dataId) {
+                return {
+                  ...row,
+                  data: {
+                    ...row.data,
+                    ...data // Apply updates directly to the data object
+                  }
+                };
+              }
+              return row;
+            })
+          }))
+        };
       });
 
-      // Return a context object with the snapshotted value
       return { previousData };
     },
     onError: (err, variables, context) => {
@@ -341,38 +438,6 @@ export function ResizableTable({ workspaceId, tableId: tableId, columns: initial
     [updateColumnWidthMutation]
   );
 
-  // Add validation function
-  const validateValue = (value: string, type: ColumnType): { isValid: boolean; error?: string; convertedValue?: any } => {
-    if (!value) return { isValid: true, convertedValue: null }; // Allow empty values
-
-    switch (type) {
-      case 'i': // integer
-        const num = Number(value);
-        if (isNaN(num) || !Number.isInteger(num)) {
-          return { isValid: false, error: 'Must be an integer' };
-        }
-        return { isValid: true, convertedValue: num };
-
-      case 'f': // float
-        const float = Number(value);
-        if (isNaN(float)) {
-          return { isValid: false, error: 'Must be a number' };
-        }
-        return { isValid: true, convertedValue: float };
-
-      case 'd': // date
-        const date = new Date(value);
-        if (date.toString() === 'Invalid Date') {
-          return { isValid: false, error: 'Must be a valid date' };
-        }
-        return { isValid: true, convertedValue: date.toISOString() };
-
-      case 's': // string
-      default:
-        return { isValid: true, convertedValue: value };
-    }
-  };
-
   const handleAddColumn = (data: { name: string; type: ColumnType; description?: string }) => {
     addColumnMutation.mutate(data);
   };
@@ -395,16 +460,11 @@ export function ResizableTable({ workspaceId, tableId: tableId, columns: initial
   }, [updateTableDataMutation]);
 
   const updateCell = (rowIndex: number, columnId: string, value: string) => {
-    const newData = [...data];
+    const dataItem = flatData[rowIndex];
+    if (!dataItem) return;
+
     const column = columns.find(col => col.id === columnId);
     if (!column) return;
-
-    // Always update the display value first for immediate feedback
-    newData[rowIndex] = {
-      ...newData[rowIndex],
-      [columnId]: value
-    };
-    setData(newData);
 
     // Validate the value
     const validation = validateValue(value, column.type);
@@ -420,32 +480,39 @@ export function ResizableTable({ workspaceId, tableId: tableId, columns: initial
 
     // Only queue update if valid
     if (validation.isValid) {
-      const dataId = (newData[rowIndex] as any).id;
+      const dataId = dataItem.id;
       if (dataId) {
         // Get or initialize the pending updates for this row
         const currentUpdates = pendingUpdatesRef.current[dataId] || {};
         
         // Add the updated field with converted value
-        const actualColumnId = parseInt(column.id);
-        currentUpdates[actualColumnId.toString()] = validation.convertedValue;
-
-        // Add other fields that are not being updated
-        Object.entries(newData[rowIndex]).forEach(([key, val]) => {
-          if (key !== columnId && key !== 'id') {
-            const col = columns.find(c => c.id === key);
-            if (col) {
-              const colId = parseInt(col.id);
-              if (!currentUpdates[colId.toString()]) {
-                // Convert existing values too
-                const existingValidation = validateValue(val, col.type);
-                currentUpdates[colId.toString()] = existingValidation.convertedValue;
-              }
-            }
-          }
-        });
+        currentUpdates[columnId] = validation.convertedValue;
 
         // Store the updates
         pendingUpdatesRef.current[dataId] = currentUpdates;
+
+        // Optimistically update the UI immediately
+        queryClient.setQueryData(['table-data', tableId], (old: any) => {
+          if (!old?.pages) return old;
+          return {
+            ...old,
+            pages: old.pages.map((page: any) => ({
+              ...page,
+              data: page.data.map((row: any) => {
+                if (row.id === dataId) {
+                  return {
+                    ...row,
+                    data: {
+                      ...row.data,
+                      [columnId]: value // Use the display value for immediate UI update
+                    }
+                  };
+                }
+                return row;
+              })
+            }))
+          };
+        });
 
         // Clear any existing timeout
         if (updateTimeoutRef.current) {
@@ -479,18 +546,28 @@ export function ResizableTable({ workspaceId, tableId: tableId, columns: initial
       setColumnOrder(newOrder);
       reorderColumnsMutation.mutate(newOrder);
 
-      // Reorder data in each row according to new column order
-      const newData = data.map(row => {
-        const reorderedRow = {} as Record<string, any>;
-        // Add columns in new order
+      // Update the order of data in each row
+      const reorderedData = flatData.map(row => {
+        const newData = { ...row };
+        const reorderedRowData = {} as Record<string, any>;
         newOrder.forEach(columnId => {
-          // Just use column ID as the key
-          reorderedRow[columnId] = row[columnId];
+          reorderedRowData[columnId] = row.data[columnId];
         });
-        return reorderedRow;
+        newData.data = reorderedRowData;
+        return newData;
       });
-      
-      setData(newData);
+
+      // Update the query cache with reordered data
+      queryClient.setQueryData(['table-data', tableId], (oldData: any) => {
+        if (!oldData?.pages) return oldData;
+        return {
+          ...oldData,
+          pages: oldData.pages.map((page: any) => ({
+            ...page,
+            data: reorderedData,
+          })),
+        };
+      });
     }
   };
 
@@ -506,85 +583,62 @@ export function ResizableTable({ workspaceId, tableId: tableId, columns: initial
           Saving changes...
         </div>
       )}
-      <div className="absolute inset-0 flex flex-col overflow-hidden bg-background">
-        <div className="flex-1 overflow-auto scrollbar-thin scrollbar-thumb-border hover:scrollbar-thumb-border/60 [scrollbar-gutter:stable]">
-          <style jsx global>{`
-            .scrollbar-thin {
-              scrollbar-width: thin;
-            }
-            .scrollbar-thin::-webkit-scrollbar {
-              width: 8px;
-              height: 8px;
-            }
-            .scrollbar-thin::-webkit-scrollbar-track {
-              background: transparent;
-            }
-            .scrollbar-thin::-webkit-scrollbar-thumb {
-              background: transparent;
-              border-radius: 4px;
-            }
-            .scrollbar-thin:hover::-webkit-scrollbar-thumb {
-              background: hsl(var(--border));
-            }
-            .scrollbar-thin::-webkit-scrollbar-corner {
-              background: transparent;
-            }
-          `}</style>
-          <div className="min-w-full">
-            {/* Header row */}
-            <div className="flex min-h-[40px] sticky top-0 z-10 shadow-sm">
-              <div className="flex flex-1" style={{ width: totalWidth, background: 'white' }}>
-                {columns.map((column: Column) => (
-                  <SortableColumn
-                    key={column.id}
-                    column={column}
-                    onResize={(width) => {
-                      // Update only the resized column's width
-                      const newColumns = columns.map(col => 
-                        col.id === column.id ? { ...col, width } : col
-                      );
-                      
-                      // Calculate new total width by summing all column widths
-                      const newTotalWidth = newColumns.reduce((sum, col) => sum + col.width, 0) + 100;
-                      setTotalWidth(newTotalWidth);
-                      setColumns(newColumns);
-                      
-                      // Debounced API call to save width
-                      debouncedUpdateWidth(column.id.toString(), width);
-                      
-                      // Only notify parent of resize without expecting an API call
-                      if (onColumnResize) {
-                        onColumnResize(column.id.toString(), width);
-                      }
-                    }}
-                  >
-                    <div className="flex items-center h-full w-full cursor-col-resize relative group">
-                      <input
-                        type="text"
-                        value={column.header}
-                        onChange={(e) => {
-                          const newColumns = columns.map(col =>
-                            col.id === column.id ? { ...col, header: e.target.value } : col
-                          );
-                          setColumns(newColumns);
-                          updateColumnMutation.mutate({
-                            columnId: column.id.toString(),
-                            name: e.target.value,
-                          });
-                        }}
-                        className="absolute inset-0 bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-primary/20 rounded-none px-4 py-2 w-full focus:z-30 text-foreground font-medium dark:focus:ring-primary/40"
-                      />
-                      <span className="pointer-events-none px-4 py-2 w-full truncate font-medium text-foreground">
-                        {column.header}
-                      </span>
-                      <div className="absolute right-0 top-1/2 -translate-y-1/2 w-px h-4/5 bg-border opacity-50 group-hover:opacity-100 dark:bg-border/80" />
-                    </div>
-                  </SortableColumn>
-                ))}
-                {/* Add Column button */}
-                <div 
-                  className="flex items-center justify-end px-2 border-r border-b-2 border-border min-w-[100px] flex-1 dark:border-border/80 bg-white dark:bg-background"
+      <DndContext 
+        sensors={sensors}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="absolute inset-0 flex flex-col overflow-hidden bg-background">
+          {/* Outer container for synchronized scrolling */}
+          <div className="flex-1 overflow-hidden flex flex-col">
+            {/* Header container that syncs with body scroll */}
+            <div className="min-h-[40px] sticky top-0 z-10 shadow-sm overflow-hidden">
+              <div className="flex" style={{ width: totalWidth, background: 'white' }}>
+                <SortableContext 
+                  items={columnOrder}
+                  strategy={horizontalListSortingStrategy}
                 >
+                  {columns.map((column: Column) => (
+                    <SortableColumn
+                      key={column.id}
+                      column={column}
+                      onResize={(width) => {
+                        const newColumns = columns.map(col => 
+                          col.id === column.id ? { ...col, width } : col
+                        );
+                        setTotalWidth(newColumns.reduce((sum, col) => sum + col.width, 0) + 100);
+                        setColumns(newColumns);
+                        debouncedUpdateWidth(column.id.toString(), width);
+                        if (onColumnResize) {
+                          onColumnResize(column.id.toString(), width);
+                        }
+                      }}
+                    >
+                      <div className="flex items-center h-full w-full cursor-col-resize relative group">
+                        <input
+                          type="text"
+                          value={column.header}
+                          onChange={(e) => {
+                            const newColumns = columns.map(col =>
+                              col.id === column.id ? { ...col, header: e.target.value } : col
+                            );
+                            setColumns(newColumns);
+                            updateColumnMutation.mutate({
+                              columnId: column.id.toString(),
+                              name: e.target.value,
+                            });
+                          }}
+                          className="absolute inset-0 bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-primary/20 rounded-none px-4 py-2 w-full focus:z-30 text-foreground font-medium dark:focus:ring-primary/40"
+                        />
+                        <span className="pointer-events-none px-4 py-2 w-full truncate font-medium text-foreground">
+                          {column.header}
+                        </span>
+                        <div className="absolute right-0 top-1/2 -translate-y-1/2 w-px h-4/5 bg-border opacity-50 group-hover:opacity-100 dark:bg-border/80" />
+                      </div>
+                    </SortableColumn>
+                  ))}
+                </SortableContext>
+                {/* Add Column button */}
+                <div className="flex items-center justify-end px-2 border-r border-b-2 border-border min-w-[100px] flex-1 dark:border-border/80 bg-white dark:bg-background">
                   <button
                     onClick={() => setIsAddColumnDialogOpen(true)}
                     className="p-1.5 text-muted-foreground hover:text-primary hover:bg-accent/20 rounded-md transition-colors"
@@ -596,65 +650,94 @@ export function ResizableTable({ workspaceId, tableId: tableId, columns: initial
               </div>
             </div>
 
-            {/* Data rows */}
-            {data.map((row, rowIndex) => (
-              <div key={rowIndex} className="flex min-h-[40px] relative group">
-                <div 
-                  className="flex flex-1 border-b hover:bg-accent/5 transition-colors bg-white dark:bg-background dark:hover:bg-accent/20 dark:border-border/80" 
-                  style={{ width: totalWidth }}
+            {/* Body container that scrolls both horizontally and vertically */}
+            <div ref={parentRef} className="flex-1 overflow-auto scrollbar-thin" onScroll={(e) => {
+              // Sync header scroll with body scroll
+              const headerContainer = e.currentTarget.previousElementSibling;
+              if (headerContainer) {
+                headerContainer.scrollLeft = e.currentTarget.scrollLeft;
+              }
+            }}>
+              <div
+                style={{
+                  height: `${rowVirtualizer.getTotalSize()}px`,
+                  width: totalWidth,
+                  position: 'relative',
+                }}
+              >
+                <SortableContext
+                  items={flatData.map((_, index) => index.toString())}
+                  strategy={verticalListSortingStrategy}
                 >
-                  {columns.map((column: Column) => {
-                    const hasError = errors[rowIndex.toString()]?.[column.id];
+                  {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                    const row = flatData[virtualRow.index];
                     return (
                       <div
-                        key={column.id}
-                        className="relative flex-shrink-0"
-                        style={{ 
-                          width: column.width,
-                          borderRight: '1px solid hsl(var(--border) / 0.8)'
+                        key={virtualRow.index}
+                        data-index={virtualRow.index}
+                        ref={rowVirtualizer.measureElement}
+                        className="absolute top-0 left-0 flex min-h-[40px] w-full"
+                        style={{
+                          transform: `translateY(${virtualRow.start}px)`,
                         }}
                       >
-                        <div className="h-full relative">
-                          {hasError && (
-                            <div className="absolute -top-5 left-0 text-xs text-white bg-red-500 px-2 py-1 z-50 whitespace-nowrap shadow-sm border border-red-400 rounded-md">
-                              {errors[rowIndex.toString()][column.id]}
+                        {columns.map((column: Column) => {
+                          const hasError = errors[virtualRow.index.toString()]?.[column.id];
+                          return (
+                            <div
+                              key={column.id}
+                              className="relative flex-shrink-0"
+                              style={{ 
+                                width: column.width,
+                                borderRight: '1px solid hsl(var(--border) / 0.8)',
+                                borderBottom: '1px solid hsl(var(--border) / 0.8)',
+                                background: 'white',
+                              }}
+                            >
+                              <div className="h-full relative">
+                                {hasError && (
+                                  <div className="absolute -top-5 left-0 text-xs text-white bg-red-500 px-2 py-1 z-50 whitespace-nowrap shadow-sm border border-red-400 rounded-md">
+                                    {errors[virtualRow.index.toString()][column.id]}
+                                  </div>
+                                )}
+                                <div className={`absolute inset-0 pointer-events-none border-2 transition-colors rounded-sm ${
+                                  hasError ? 'border-red-500/50' : 'border-transparent'
+                                }`} />
+                                <input
+                                  type="text"
+                                  value={row?.data[column.id] || ''}
+                                  onChange={(e) => updateCell(virtualRow.index, column.id, e.target.value)}
+                                  className="absolute inset-0 bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-primary/20 hover:bg-accent/5 rounded-none px-4 py-2 w-full focus:z-30 text-foreground dark:hover:bg-accent/20 dark:focus:ring-primary/40"
+                                />
+                              </div>
                             </div>
-                          )}
-                          <div className={`absolute inset-0 pointer-events-none border-2 transition-colors rounded-sm ${
-                            hasError ? 'border-red-500/50' : 'border-transparent'
-                          }`} />
-                          <input
-                            type="text"
-                            value={row[column.id] || ''}
-                            onChange={(e) => updateCell(rowIndex, column.id, e.target.value)}
-                            className="absolute inset-0 bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-primary/20 hover:bg-accent/5 rounded-none px-4 py-2 w-full focus:z-30 text-foreground dark:hover:bg-accent/20 dark:focus:ring-primary/40"
-                          />
-                        </div>
+                          );
+                        })}
+                        {/* Empty space */}
+                        <div className="border-r min-w-[100px] flex-1 bg-white dark:bg-background dark:border-border/80" />
                       </div>
                     );
                   })}
-                  {/* Empty space */}
-                  <div className="border-r min-w-[100px] flex-1 bg-white dark:bg-background dark:border-border/80" />
-                </div>
+                </SortableContext>
               </div>
-            ))}
+            </div>
           </div>
-        </div>
 
-        {/* Add Row button */}
-        <div className="flex-shrink-0">
-          <div className="flex justify-left border-t border-border p-2 min-w-full dark:border-border/40" style={{ background: 'hsl(var(--background))' }}>
-            <button
-              onClick={addRow}
-              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary px-2 py-1 hover:bg-accent/10 rounded-md transition-colors"
-              title="Add Row"
-            >
-              <PlusIcon className="h-4 w-4" />
-              <span>Add row</span>
-            </button>
+          {/* Add Row button */}
+          <div className="flex-shrink-0">
+            <div className="flex justify-left border-t border-border p-2 min-w-full dark:border-border/40" style={{ background: 'hsl(var(--background))' }}>
+              <button
+                onClick={addRow}
+                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary px-2 py-1 hover:bg-accent/10 rounded-md transition-colors"
+                title="Add Row"
+              >
+                <PlusIcon className="h-4 w-4" />
+                <span>Add row</span>
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      </DndContext>
 
       <AddColumnDialog
         isOpen={isAddColumnDialogOpen}
