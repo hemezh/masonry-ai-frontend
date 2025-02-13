@@ -19,7 +19,7 @@ export function ChatInput({ prompt, hasStarted, onPromptChange, onSubmit, isLoad
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+            if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault()
                 formRef.current?.requestSubmit()
             }
@@ -29,7 +29,6 @@ export function ChatInput({ prompt, hasStarted, onPromptChange, onSubmit, isLoad
         return () => document.removeEventListener('keydown', handleKeyDown)
     }, [])
 
-    const shortcutHint = os === 'macos' ? '⌘ + Enter' : 'Ctrl + Enter'
 
     return (
         <form ref={formRef} onSubmit={onSubmit} className="relative">
@@ -58,7 +57,6 @@ export function ChatInput({ prompt, hasStarted, onPromptChange, onSubmit, isLoad
                         <ArrowUpIcon className="h-5 w-5" />
                     )}
                 </Button>
-                <span className="text-xs text-muted-foreground">{shortcutHint}</span>
             </div>
         </form>
     )

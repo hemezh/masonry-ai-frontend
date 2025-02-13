@@ -21,7 +21,7 @@
  * - Parallel data fetching for initial load
  */
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { ChatMessage as ChatMessageType } from '@/types/chat-api';
 import { useChat } from '@/hooks/use-chat';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
@@ -34,6 +34,7 @@ import { ChatInputContainer } from '@/components/workflow/chat-input-container';
 import { MessageListContainer } from '@/components/workflow/message-list-container';
 import { ArrowPathIcon } from '@heroicons/react/24/outline';
 import { cn } from '@/lib/utils';
+import { timeStamp } from 'console';
 
 /**
  * Represents the complete state of a workflow in the system.
@@ -72,16 +73,14 @@ function WorkflowChatPageContent() {
   const router = useRouter();
   const { setWorkflow: setContextWorkflow } = useWorkflowContext();
 
+  // Track initialization state with refs instead of state
+  const hasOptimisticUpdate = useRef(false);
+  const hasHandledInitialPrompt = useRef(false);
+  const isInitialMount = useRef(true);
+
   /**
    * Core state management
-   * 
-   * The component maintains several interdependent pieces of state:
-   * 1. messages: Chat history with real-time updates
-   * 2. workflowState: Current workflow visualization data
-   * 3. loadingState: Multi-faceted loading tracking
-   * 4. isMessageSending: Message transmission status
-   * 
-   * This separation allows for granular updates and prevents unnecessary rerenders
+   * Simplified to only essential state that affects rendering
    */
   const [messages, setMessages] = useState<ChatMessageType[]>([]);
   const [workflowState, setWorkflowState] = useState<WorkflowState>({
@@ -89,26 +88,25 @@ function WorkflowChatPageContent() {
     nodes: [],
     edges: []
   });
-
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
-  const [initialPrompt, setInitialPrompt] = useState('');
-  const [hasHandledInitialPrompt, setHasHandledInitialPrompt] = useState(false);
   const [isMessageSending, setIsMessageSending] = useState(false);
 
-  /**
-   * Error handler for chat operations
-   * 
-   * This callback serves multiple purposes:
-   * 1. Updates the failed message with error information
-   * 2. Preserves the message history
-   * 3. Resets the sending state
-   * 
-   * The implementation ensures that only the last message is updated,
-   * maintaining the integrity of the chat history.
-   */
+  // Add logging for state changes
+  useEffect(() => {
+    console.log('[State Change] Messages:', messages);
+  }, [messages]);
+
+  useEffect(() => {
+    console.log('[State Change] WorkflowState:', workflowState);
+  }, [workflowState]);
+
+  useEffect(() => {
+    console.log('[State Change] IsMessageSending:', isMessageSending);
+  }, [isMessageSending]);
+
   const handleChatError = useCallback((error: Error) => {
-    setMessages(prev => 
-      prev.map((msg, idx) => 
+    console.log('[Error Handler] Chat error:', error);
+    setMessages(prev => {
+      const updatedMessages = prev.map((msg, idx) => 
         idx === prev.length - 1 
           ? {
               ...msg,
@@ -117,8 +115,10 @@ function WorkflowChatPageContent() {
               status: "failed" as const
             }
           : msg
-      )
-    );
+      );
+      console.log('[Error Handler] Updated messages:', updatedMessages);
+      return updatedMessages;
+    });
   }, []);
 
   // Hook initialization with error handling
@@ -135,75 +135,104 @@ function WorkflowChatPageContent() {
     }, [])
   });
 
-  useEffect(() => {}, [messages]);
-
   const handleSendMessage = useCallback(async (prompt: string) => {
+    console.log('[handleSendMessage] Starting with prompt:', prompt);
+    console.log('[handleSendMessage] Current state:', {
+      chatId,
+      isMessageSending,
+      messagesCount: messages.length
+    });
+    
     setIsMessageSending(true);
+    hasOptimisticUpdate.current = true;
     
     const userMessage: ChatMessageType = {
-      role: "user",
+      id: "user-" + Date.now(),
+      role: "user", 
       blocks: [{ type: 'text' as const, content: prompt }],
       steps: {},
       status: "success" as const
     };
 
     const loadingMessage: ChatMessageType = {
+      id: "assistant-" + Date.now(),
       role: "assistant",
       blocks: [{ type: 'text', content: '' }],
       steps: {},
       status: "loading" as const
     };
-    
+
+    console.log('[handleSendMessage] Adding messages:', {
+      userMessage,
+      loadingMessage
+    });
+
     setMessages(prev => [...prev, userMessage, loadingMessage]);
 
     try {
+      console.log('[handleSendMessage] Sending message to API');
       await sendMessage(
         chatId,
         loadingMessage,
         prompt,
         (message) => {
+          console.log('[handleSendMessage] Message update callback:', message);
           setMessages(prev => {
-            const newMessages = [...prev];
-            newMessages[newMessages.length - 1] = message;
-            return newMessages;
+            const updated = [...prev];
+            // Preserve the message's content and update status if this is the final update
+            updated[updated.length - 1] = {
+              ...message,
+              status: message.status === "loading" && !message.blocks[0].content.endsWith("...") 
+                ? "success" 
+                : message.status
+            };
+            console.log('[handleSendMessage] Updated messages:', updated);
+            return updated;
           });
         }
       );
     } catch (error) {
+      console.error('[handleSendMessage] Error:', error);
     } finally {
+      // Set final message status to success if still loading
+      setMessages(prev => {
+        const lastMessage = prev[prev.length - 1];
+        if (lastMessage?.status === "loading") {
+          const updated = [...prev];
+          updated[updated.length - 1] = {
+            ...lastMessage,
+            status: "success"
+          };
+          console.log('[handleSendMessage] Setting final message status to success');
+          return updated;
+        }
+        return prev;
+      });
+      
+      console.log('[handleSendMessage] Completed, setting isMessageSending to false');
       setIsMessageSending(false);
+      hasOptimisticUpdate.current = false;
     }
-  }, [chatId, sendMessage]);
+  }, [chatId, sendMessage, isMessageSending, messages.length]);
 
-  /**
-   * Initial data loading effect
-   * 
-   * This effect handles the complex initialization process:
-   * 1. Parallel loading of chat and workflow data
-   * 2. Message format normalization
-   * 3. URL parameter processing
-   * 4. Workflow context synchronization
-   * 
-   * The implementation uses Promise.all for efficient loading
-   * and includes comprehensive error handling.
-   */
+  // Combined initialization and URL prompt handling
   useEffect(() => {
-    async function loadWorkflow() {
-      if (!isInitialLoad || !chatId) return;
-
+    async function initialize() {
+      if (!isInitialMount.current || !chatId) return;
+      
+      console.log('[Initialize] Starting initialization');
       try {
         const [chat, workflowData] = await Promise.all([
           getChat(chatId),
           getWorkflow(chatId)
         ]);
 
-        const promptParam = searchParams.get('prompt');
-
         if (workflowData.workflow) {
           setContextWorkflow(workflowData.workflow);
+          setWorkflowState(workflowData);
         }
         
-        if (chat?.messages?.length && !hasHandledInitialPrompt) {
+        if (chat?.messages?.length && !hasOptimisticUpdate.current) {
           const formattedMessages = chat.messages.map(message => ({
             ...message,
             blocks: message.blocks?.length ? message.blocks : [{
@@ -214,39 +243,23 @@ function WorkflowChatPageContent() {
           }));
           setMessages(formattedMessages);
         }
-  
-        setWorkflowState(workflowData);
-        setIsInitialLoad(false);
-        setInitialPrompt(promptParam || '');
-        if (promptParam) {
+
+        const promptParam = searchParams.get('prompt');
+        if (promptParam && !hasHandledInitialPrompt.current) {
+          hasHandledInitialPrompt.current = true;
+          handleSendMessage(promptParam);
           router.replace(`/dashboard/chat/${chatId}`);
         }
 
+        isInitialMount.current = false;
       } catch (error) {
-        setIsInitialLoad(false);
+        console.error('[Initialize] Error:', error);
+        isInitialMount.current = false;
       }
     }
 
-    loadWorkflow();
-  }, [chatId, getChat, getWorkflow, router, searchParams, isInitialLoad, setContextWorkflow]);
-
-  /**
-   * Initial prompt handler effect
-   * 
-   * This effect manages the processing of URL-based initial prompts:
-   * 1. Waits for component initialization
-   * 2. Processes the prompt only once
-   * 3. Updates handling state
-   * 
-   * This implementation ensures that prompts are processed exactly once
-   * and only after the component is ready.
-   */
-  useEffect(() => {
-    if (initialPrompt && !hasHandledInitialPrompt && !isInitialLoad) {
-      handleSendMessage(initialPrompt);
-      setHasHandledInitialPrompt(true);
-    }
-  }, [initialPrompt, hasHandledInitialPrompt, isInitialLoad, handleSendMessage, hasHandledInitialPrompt]);
+    initialize();
+  }, [chatId, getChat, getWorkflow, router, searchParams, handleSendMessage, setContextWorkflow]);
 
   // Workflow visibility control
   const showWorkflow = workflowState.nodes.length > 0;
@@ -292,7 +305,7 @@ function WorkflowChatPageContent() {
       <div className={layoutClasses.contentWrapper}>
         <div className={layoutClasses.chatSection}>
           <div className={layoutClasses.messagesContainer}>
-            {isInitialLoad ? (
+            {isInitialMount.current ? (
               <div className={layoutClasses.loadingContainer}>
                 <div className="flex flex-col items-center gap-3">
                   <ArrowPathIcon className={layoutClasses.loadingIcon} />

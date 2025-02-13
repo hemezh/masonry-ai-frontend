@@ -202,7 +202,7 @@ export function ChatMessageList({ messages, isLoading = false }: ChatMessageList
 
 export function ChatMessage({ message }: { message: ChatMessageType }) {
     return (
-        <div className={cn(
+        <div key={message.id} className={cn(
             "flex gap-4 p-4 w-full",
             message.role === "assistant" && "bg-secondary border border-border rounded-lg"
         )}>
