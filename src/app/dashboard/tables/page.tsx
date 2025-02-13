@@ -35,6 +35,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { CreateTableDialog } from '@/components/tables/create-table-dialog';
+import { CSVImportDialog } from '@/components/tables/csv-import-dialog';
 
 export default function TablesPage() {
   const router = useRouter();
@@ -44,6 +45,7 @@ export default function TablesPage() {
   const [tableToEdit, setTableToEdit] = useState<Table | null>(null);
   const [editForm, setEditForm] = useState({ name: '', description: '' });
   const [isCreateTableOpen, setIsCreateTableOpen] = useState(false);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   
   const { data: tables, isLoading: isLoadingTables, error } = useQuery({
     queryKey: ['tables', currentWorkspace?.id],
@@ -132,18 +134,35 @@ export default function TablesPage() {
       <h1 className="text-2xl font-bold mb-6">Tables</h1>
       <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {/* New Table Card */}
-        <button
-          onClick={() => setIsCreateTableOpen(true)}
-          className="h-[240px] rounded-lg border border-dashed border-border hover:border-primary/50 bg-card p-6 flex flex-col items-center justify-center gap-4 transition-all group dark:bg-white/[.08] dark:hover:bg-white/[.12] dark:hover:border-primary/30 dark:shadow-lg"
-        >
-          <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors dark:bg-primary/30 dark:group-hover:bg-primary/40">
-            <PlusIcon className="h-6 w-6 text-primary" />
-          </div>
-          <div className="text-center">
-            <h3 className="font-medium text-foreground dark:text-slate-100">Create New Table</h3>
-            <p className="text-sm text-muted-foreground dark:text-slate-300">Start with a blank table</p>
-          </div>
-        </button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className="h-[240px] rounded-lg border border-dashed border-border hover:border-primary/50 bg-card p-6 flex flex-col items-center justify-center gap-4 transition-all group dark:bg-white/[.08] dark:hover:bg-white/[.12] dark:hover:border-primary/30 dark:shadow-lg"
+            >
+              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors dark:bg-primary/30 dark:group-hover:bg-primary/40">
+                <PlusIcon className="h-6 w-6 text-primary" />
+              </div>
+              <div className="text-center">
+                <h3 className="font-medium text-foreground dark:text-slate-100">Create New Table</h3>
+                <p className="text-sm text-muted-foreground dark:text-slate-300">Choose how to start</p>
+              </div>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="center" className="w-[200px]">
+            <DropdownMenuItem onClick={() => setIsCreateTableOpen(true)}>
+              <div className="flex flex-col">
+                <span className="font-medium">Blank Table</span>
+                <span className="text-xs text-muted-foreground">Start with an empty table</span>
+              </div>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setIsImportDialogOpen(true)}>
+              <div className="flex flex-col">
+                <span className="font-medium">Import CSV</span>
+                <span className="text-xs text-muted-foreground">Create from CSV file</span>
+              </div>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {/* Loading State */}
         {isLoadingTables && (
@@ -291,6 +310,29 @@ export default function TablesPage() {
       <CreateTableDialog
         isOpen={isCreateTableOpen}
         onOpenChange={setIsCreateTableOpen}
+      />
+
+      {/* CSV Import Dialog */}
+      <CSVImportDialog
+        isOpen={isImportDialogOpen}
+        onOpenChange={setIsImportDialogOpen}
+        onImport={async (data) => {
+          if (!currentWorkspace) throw new Error('No workspace selected');
+          const formData = new FormData();
+          formData.append('file', data.file);
+          formData.append('columnTypes', JSON.stringify(data.columnTypes));
+          formData.append('skipFirstRow', String(data.skipFirstRow));
+          
+          try {
+            const table = await tablesApi.createTableFromCSV(currentWorkspace.id, formData);
+            toast.success('Table created successfully from CSV');
+            queryClient.invalidateQueries({ queryKey: ['tables', currentWorkspace.id] });
+            router.push(`/dashboard/tables/${table.id}`);
+          } catch (error) {
+            toast.error('Failed to create table from CSV: ' + (error as Error).message);
+          }
+        }}
+        isLoading={false}
       />
     </div>
   );
