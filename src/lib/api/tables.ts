@@ -202,4 +202,30 @@ export const tablesApi = {
       body: JSON.stringify({ target_position: targetPosition }),
     });
   },
-}; 
+
+  importCSV: async (workspaceId: string, tableId: string, formData: FormData) => {
+    const response = await fetch(
+      `${API_BASE}/workspaces/${workspaceId}/tables/${tableId}/import-csv`,
+      {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to import CSV');
+    }
+
+    return response.json();
+  },
+
+  createTableFromCSV: async (workspaceId: string, formData: FormData) => {
+    const response = await fetchApi(`/workspaces/${workspaceId}/tables/import-csv`, {
+      method: 'POST',
+      body: formData,
+    });
+    return response.json();
+  },
+} as const; 
