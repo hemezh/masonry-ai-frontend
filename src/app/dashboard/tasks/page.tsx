@@ -69,29 +69,33 @@ export default function TasksPage() {
     };
 
     return (
-        <div className="p-8 mx-auto">
-            <TaskHeader />
-            <TaskFilters 
-                statusFilter={statusFilter}
-                onFilterChange={setStatusFilter}
-            />
-            <TaskList
-                tasks={tasks}
-                isLoading={isLoading}
-                onDelete={handleDelete}
-                onConfigureClick={setSelectedTask}
-            />
-            {!isLoading && tasks.length === 0 && (
-                <TaskEmptyState statusFilter={statusFilter} />
-            )}
-            {selectedTask && (
-                <TaskConfigModal
-                    task={selectedTask}
-                    isOpen={true}
-                    onClose={() => setSelectedTask(null)}
-                    onConfigUpdate={handleConfigUpdate}
+        <div className="flex-1 overflow-y-auto">
+            <div className="p-8 mx-auto">
+                <TaskHeader />
+                <TaskFilters 
+                    statusFilter={statusFilter}
+                    onFilterChange={setStatusFilter}
                 />
-            )}
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    <TaskList
+                        tasks={tasks}
+                        isLoading={isLoading}
+                        onDelete={handleDelete}
+                        onConfigureClick={setSelectedTask}
+                    />
+                </div>
+                {!isLoading && tasks.length === 0 && (
+                    <TaskEmptyState statusFilter={statusFilter} />
+                )}
+                {selectedTask && (
+                    <TaskConfigModal
+                        task={selectedTask}
+                        isOpen={true}
+                        onClose={() => setSelectedTask(null)}
+                        onConfigUpdate={handleConfigUpdate}
+                    />
+                )}
+            </div>
         </div>
     );
 } 

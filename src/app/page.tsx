@@ -1,3 +1,6 @@
+'use client';
+
+import Link from "next/link";
 import Image from "next/image";
 
 export default function Home() {
@@ -7,18 +10,18 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="font-bold text-xl">Masonry</div>
           <div className="flex gap-4">
-            <a
-              href="/login"
+            <Link
+              href="/auth/login"
               className="px-4 py-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
             >
               Login
-            </a>
-            <a
-              href="/signup"
+            </Link>
+            <Link
+              href="/auth/signup"
               className="px-4 py-2 rounded-lg bg-foreground text-background hover:opacity-90 transition-opacity"
             >
               Sign Up
-            </a>
+            </Link>
           </div>
         </div>
       </header>
@@ -34,18 +37,18 @@ export default function Home() {
               orchestrates tasks with the precision and reliability you need.
             </p>
             <div className="flex gap-4">
-              <a
-                href="/signup"
+              <Link
+                href="/auth/signup"
                 className="px-6 py-3 rounded-lg bg-foreground text-background hover:opacity-90 transition-opacity font-medium"
               >
                 Get Started Free
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/demo"
                 className="px-6 py-3 rounded-lg border border-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors font-medium"
               >
                 Book a Demo
-              </a>
+              </Link>
             </div>
           </div>
 

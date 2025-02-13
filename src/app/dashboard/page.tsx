@@ -9,22 +9,6 @@ const metrics = {
     queuedDocuments: 8,
 };
 
-const chartdata = [
-    { date: 'Mon', runs: 34 },
-    { date: 'Tue', runs: 42 },
-    { date: 'Wed', runs: 38 },
-    { date: 'Thu', runs: 45 },
-    { date: 'Fri', runs: 40 },
-    { date: 'Sat', runs: 35 },
-    { date: 'Sun', runs: 30 },
-];
-
-const activities = [
-    { id: 1, type: 'automation', name: 'Invoice Processing', status: 'completed', timestamp: new Date(2024, 2, 15) },
-    { id: 2, type: 'integration', name: 'Slack Connector', status: 'failed', timestamp: new Date(2024, 2, 14) },
-    // Add more activities...
-];
-
 interface MetricCardProps {
     title: string;
     value: number;

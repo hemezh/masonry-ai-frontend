@@ -11,15 +11,27 @@ interface TaskListProps {
 export function TaskList({ tasks, isLoading, onDelete, onConfigureClick }: TaskListProps) {
     if (isLoading) {
         return (
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            <>
                 {[1, 2, 3].map((i) => (
-                    <div key={i} className="bg-background rounded-lg border border-border p-4 animate-pulse">
-                        <div className="h-6 bg-muted rounded w-3/4 mb-3"></div>
-                        <div className="h-4 bg-muted rounded w-1/2 mb-2"></div>
-                        <div className="h-4 bg-muted rounded w-2/3"></div>
+                    <div key={i} className="bg-background rounded-lg border border-border/40 shadow-sm p-4 h-48 relative">
+                        <div className="absolute left-0 top-0 rounded-tl-lg rounded-bl-lg bottom-0 w-1 bg-muted/60"></div>
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-2">
+                                <div className="h-5 bg-secondary rounded-full w-16 animate-pulse"></div>
+                            </div>
+                            <div className="space-y-2">
+                                <div className="h-4 bg-secondary rounded w-3/4 animate-pulse"></div>
+                                <div className="h-3 bg-secondary rounded w-1/2 animate-pulse"></div>
+                            </div>
+                            <div className="h-16 bg-secondary rounded animate-pulse"></div>
+                            <div className="flex gap-2">
+                                <div className="h-7 bg-secondary rounded w-24 animate-pulse"></div>
+                                <div className="h-7 bg-secondary rounded w-32 animate-pulse"></div>
+                            </div>
+                        </div>
                     </div>
                 ))}
-            </div>
+            </>
         );
     }
 
@@ -28,7 +40,7 @@ export function TaskList({ tasks, isLoading, onDelete, onConfigureClick }: TaskL
     }
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        <>
             {tasks.map((task, index) => (
                 <TaskCard
                     key={task.id}
@@ -38,6 +50,6 @@ export function TaskList({ tasks, isLoading, onDelete, onConfigureClick }: TaskL
                     onConfigureClick={onConfigureClick}
                 />
             ))}
-        </div>
+        </>
     );
 } 

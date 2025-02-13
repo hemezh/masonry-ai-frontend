@@ -30,11 +30,17 @@ const hasConfigFields = (task: Task) => {
     return task.config_schema?.properties && Object.keys(task.config_schema.properties).length > 0;
 };
 
-const STATUS_STYLES = {
-    completed: { bg: 'bg-secondary', text: 'text-secondary-foreground' },
+const TASK_STATUS_STYLES = {
+    Active: { bg: 'bg-green-100 dark:bg-green-950', text: 'text-green-700 dark:text-green-300' },
+    Draft: { bg: 'bg-yellow-100 dark:bg-yellow-950', text: 'text-yellow-700 dark:text-yellow-300' },
+    Archived: { bg: 'bg-gray-100 dark:bg-gray-900', text: 'text-gray-700 dark:text-gray-400' },
+} as const;
+
+const EXECUTION_STATUS_STYLES = {
+    completed: { bg: 'bg-green-100 dark:bg-green-950', text: 'text-green-700 dark:text-green-300' },
     failed: { bg: 'bg-destructive/10', text: 'text-destructive' },
-    running: { bg: 'bg-secondary', text: 'text-secondary-foreground' },
-    pending: { bg: 'bg-secondary', text: 'text-secondary-foreground' },
+    running: { bg: 'bg-blue-100 dark:bg-blue-950', text: 'text-blue-700 dark:text-blue-300' },
+    pending: { bg: 'bg-yellow-100 dark:bg-yellow-950', text: 'text-yellow-700 dark:text-yellow-300' },
 } as const;
 
 export function TaskCard({ task, index, onDelete, onConfigureClick }: TaskCardProps) {
@@ -88,7 +94,7 @@ export function TaskCard({ task, index, onDelete, onConfigureClick }: TaskCardPr
     const getStatusBadge = () => {
         if (!latestExecution) return null;
 
-        const config = STATUS_STYLES[latestExecution.status];
+        const config = EXECUTION_STATUS_STYLES[latestExecution.status];
         return (
             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
                 <ClockIcon className="h-3 w-3" />
@@ -97,20 +103,19 @@ export function TaskCard({ task, index, onDelete, onConfigureClick }: TaskCardPr
         );
     };
 
+    const statusStyle = TASK_STATUS_STYLES[task.status as keyof typeof TASK_STATUS_STYLES];
+
     return (
-        <div className="bg-background rounded-lg border border-border p-3 relative h-48 flex flex-col overflow-hidden">
+        <div className="bg-card rounded-lg border border-border/60 shadow-sm p-3 relative h-48 flex flex-col overflow-hidden transition-all hover:shadow-md">
             {/* Accent border */}
             <div 
-                className="absolute left-0 top-0 rounded-lg bottom-0 w-0.5" 
+                className="absolute left-0 top-0 rounded-tl-lg rounded-bl-lg bottom-0 w-1 opacity-60" 
                 style={{ backgroundColor: accentColor }} 
             />
             
             {/* Status badges */}
-            <div className="flex items-center gap-2 mb-2 ">
-                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                    task.status === 'Active' ? 'bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300' :
-                    'bg-muted text-muted-foreground border border-border'
-                }`}>
+            <div className="flex items-center gap-2 mb-2">
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusStyle.bg} ${statusStyle.text}`}>
                     {task.status}
                 </span>
                 {getStatusBadge()}
@@ -119,10 +124,10 @@ export function TaskCard({ task, index, onDelete, onConfigureClick }: TaskCardPr
             {/* Header section */}
             <div className="flex justify-between items-start mb-1.5">
                 <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-foreground text-sm mb-0.5 line-clamp-1">
+                    <h3 className="font-semibold text-foreground text-sm mb-0.5 line-clamp-1">
                         {toTitleCase(task.name)}
                     </h3>
-                    <span className="text-xs text-muted-foreground font-mono">
+                    <span className="text-[10px] text-muted-foreground/60 font-mono tracking-tight">
                         {task.id}
                     </span>
                 </div>
@@ -130,8 +135,8 @@ export function TaskCard({ task, index, onDelete, onConfigureClick }: TaskCardPr
                     <DropdownMenuTrigger asChild>
                         <Button 
                             variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8"
+                            size="icon"
+                            className="h-8 w-8 hover:bg-accent/50"
                         >
                             <EllipsisVerticalIcon className="h-4 w-4 text-muted-foreground" />
                         </Button>
@@ -139,7 +144,7 @@ export function TaskCard({ task, index, onDelete, onConfigureClick }: TaskCardPr
                     <DropdownMenuContent align="end" className="w-48">
                         <DropdownMenuItem 
                             onClick={() => onDelete(task.id)} 
-                            className="text-red-600 dark:text-red-400"
+                            className="text-destructive focus:text-destructive"
                         >
                             <TrashIcon className="h-4 w-4 mr-2" />
                             Delete
@@ -148,9 +153,9 @@ export function TaskCard({ task, index, onDelete, onConfigureClick }: TaskCardPr
                 </DropdownMenu>
             </div>
             
-            {/* Description - Fixed visibility */}
+            {/* Description */}
             <div className="flex-1">
-                <p className="text-sm text-muted-foreground leading-normal line-clamp-2 overflow-hidden">
+                <p className="text-sm text-muted-foreground/90 leading-normal line-clamp-2 overflow-hidden">
                     {task.description}
                 </p>
             </div>
@@ -160,7 +165,7 @@ export function TaskCard({ task, index, onDelete, onConfigureClick }: TaskCardPr
                 <Button 
                     variant="default" 
                     size="sm"
-                    className="h-7 text-xs"
+                    className="h-7 text-xs shadow-sm"
                     onClick={handleExecute}
                     disabled={isPolling}
                 >
@@ -170,9 +175,9 @@ export function TaskCard({ task, index, onDelete, onConfigureClick }: TaskCardPr
 
                 {hasConfigFields(task) && (
                     <Button 
-                        variant="outline" 
+                        variant="secondary" 
                         size="sm"
-                        className="h-7 text-xs"
+                        className="h-7 text-xs shadow-sm"
                         onClick={() => onConfigureClick(task)}
                     >
                         <Cog6ToothIcon className="h-3.5 w-3.5 mr-1.5" />
@@ -181,9 +186,9 @@ export function TaskCard({ task, index, onDelete, onConfigureClick }: TaskCardPr
                 )}
 
                 <Button 
-                    variant="outline" 
+                    variant="secondary" 
                     size="sm"
-                    className="h-7 text-xs text-muted-foreground"
+                    className="h-7 text-xs shadow-sm"
                     onClick={() => setIsHistoryModalOpen(true)}
                 >
                     <ClockIcon className="h-3.5 w-3.5 mr-1.5" />

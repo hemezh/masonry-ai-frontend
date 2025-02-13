@@ -89,7 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await firebaseAuth.signOut();
       setUser(null);
       setAuthToken(null);
-      router.push('/auth');
+      router.push('/');
     } catch (error) {
       throw error;
     }

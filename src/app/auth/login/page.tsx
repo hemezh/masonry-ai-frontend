@@ -1,12 +1,12 @@
-import { AuthForm } from '@/components/auth/auth-form';
+import { LoginForm } from '@/components/auth/login-form';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Authentication',
-  description: 'Sign in or create an account',
+  title: 'Sign In',
+  description: 'Sign in to your account',
 };
 
-export default function AuthPage() {
+export default function LoginPage() {
   return (
     <main className="min-h-screen grid place-items-center px-4 py-8">
       <div className="w-full max-w-[350px] space-y-6">
@@ -15,10 +15,10 @@ export default function AuthPage() {
             Welcome back
           </h1>
           <p className="text-sm text-muted-foreground">
-            Sign in to your account or create a new one
+            Sign in to your account
           </p>
         </div>
-        <AuthForm />
+        <LoginForm />
       </div>
     </main>
   );
