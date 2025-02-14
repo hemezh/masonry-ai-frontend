@@ -648,7 +648,7 @@ export function ResizableTable({ workspaceId, tableId, columns: initialColumns, 
           <div className="flex-1 overflow-hidden flex flex-col">
             {/* Header container that syncs with body scroll */}
             <div className="min-h-[40px] sticky top-0 z-10 shadow-sm overflow-hidden">
-              <div className="flex" style={{ width: totalWidth + 40, background: 'white',  }}>
+              <div className="flex" style={{ width: totalWidth + 40 /* 40 is added to account for the scrollbar, offsetted below the header add button */, background: 'white',  }}>
                 <SortableContext 
                   items={columnOrder}
                   strategy={horizontalListSortingStrategy}
