@@ -26,8 +26,8 @@ apiClient.interceptors.response.use(
         // Handle common error cases
         if (error.response?.status === 401) {
             // Handle unauthorized
-            // localStorage.removeItem('auth_token');
-            // window.location.href = '/auth';
+            localStorage.removeItem('auth_token');
+            window.location.href = '/auth/login';
         }
         return Promise.reject(error);
     }
