@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { Resizable, ResizeCallbackData } from 'react-resizable';
-import { PlusIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, SwatchIcon, PencilIcon } from '@heroicons/react/24/outline';
+import { ChevronDownIcon } from '@heroicons/react/24/solid';
 import { DndContext, DragEndEvent, MouseSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -11,13 +12,59 @@ import { AddColumnDialog } from './add-column-dialog';
 import { toast } from 'sonner';
 import 'react-resizable/css/styles.css';
 import debounce from 'lodash/debounce';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+} from "@/components/ui/dropdown-menu";
+
+// Predefined colors for columns
+const COLUMN_COLORS = [
+  { name: 'Default', value: '' },
+  { name: 'Red', value: '#fca5a5' },
+  { name: 'Orange', value: '#fdba74' },
+  { name: 'Yellow', value: '#fde047' },
+  { name: 'Green', value: '#86efac' },
+  { name: 'Blue', value: '#93c5fd' },
+  { name: 'Purple', value: '#d8b4fe' },
+  { name: 'Pink', value: '#f9a8d4' },
+];
+
+// Predefined text colors for columns
+const TEXT_COLORS = [
+  { name: 'Default', value: '' },
+  { name: 'Black', value: '#000000' },
+  { name: 'White', value: '#ffffff' },
+  { name: 'Gray', value: '#6b7280' },
+  { name: 'Red', value: '#dc2626' },
+  { name: 'Blue', value: '#2563eb' },
+  { name: 'Green', value: '#16a34a' },
+];
 
 interface Column {
   id: string;
+  name?: string;
   header: string;
   width: number;
   type: ColumnType;
   minWidth?: number;
+  color?: string;
+  textColor?: string;
+  text_color?: string;
 }
 
 interface ResizableTableProps {
@@ -71,7 +118,7 @@ function SortableColumn({ column, onResize, children }: SortableColumnProps) {
         draggableOpts={{ enableUserSelectHack: false }}
         handle={
           <div className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize group-hover:bg-primary/10 transition-colors z-10 flex items-center justify-center">
-            <div className="w-px h-4 bg-border dark:bg-border/80 group-hover:bg-primary/25 transition-colors" />
+            <div className="w-px h-4 bg-border dark:bg-border group-hover:bg-primary/25 transition-colors" />
           </div>
         }
         className="relative"
@@ -80,9 +127,9 @@ function SortableColumn({ column, onResize, children }: SortableColumnProps) {
           className="h-full relative flex-shrink-0 group"
           style={{ 
             width: column.width,
-            borderRight: '1px solid hsl(var(--border) / 0.8)',
-            borderBottom: '2px solid hsl(var(--border) / 0.8)',
-            background: 'hsl(var(--background))'
+            borderRight: '1px solid var(--table-border-color)',
+            borderBottom: '1px solid var(--table-border-color)',
+            background: column.color || 'hsl(var(--background))'
           }}
         >
           <div 
@@ -97,70 +144,7 @@ function SortableColumn({ column, onResize, children }: SortableColumnProps) {
   );
 }
 
-function SortableRow({ row, rowIndex, columns, updateCell, totalWidth, errors }: SortableRowProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({
-    id: rowIndex.toString(),
-    data: row,
-  });
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    zIndex: isDragging ? 1 : 0,
-  };
-
-  return (
-    <div ref={setNodeRef} style={style} {...attributes}>
-      <div className="flex min-h-[40px] relative group">
-        <div 
-          className="flex flex-1 border-b hover:bg-accent/5 transition-colors bg-white" 
-          style={{ width: totalWidth }}
-          {...listeners}
-        >
-          {columns.map((column: Column) => {
-            const hasError = errors[rowIndex.toString()]?.[column.id];
-            return (
-              <div
-                key={column.id}
-                className="relative flex-shrink-0"
-                style={{ 
-                  width: column.width,
-                  borderRight: '1px solid var(--border-color, #E5E7EB)'
-                }}
-              >
-                <div className="h-full relative">
-                  {hasError && (
-                    <div className="absolute -top-5 left-0 text-xs text-white bg-red-500 px-2 py-1 z-50 whitespace-nowrap shadow-sm border border-red-400 rounded-md">
-                      {errors[rowIndex.toString()][column.id]}
-                    </div>
-                  )}
-                  <div className={`absolute inset-0 pointer-events-none border-2 transition-colors rounded-sm ${
-                    hasError ? 'border-red-500/50' : 'border-transparent'
-                  }`} />
-                  <input
-                    type="text"
-                    value={row[column.id] || ''}
-                    onChange={(e) => updateCell(rowIndex, column.id, e.target.value)}
-                    className={`absolute inset-0 bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-primary/10 hover:bg-accent/5 rounded-none px-4 py-2 w-full focus:z-30 text-foreground`}
-                  />
-                </div>
-              </div>
-            );
-          })}
-          {/* Empty space */}
-          <div className="border-r min-w-[100px] flex-1 bg-white" />
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // Add validateValue function
 const validateValue = (value: string, type: ColumnType): { isValid: boolean; error?: string; convertedValue?: any } => {
@@ -210,6 +194,9 @@ export function ResizableTable({ workspaceId, tableId, columns: initialColumns, 
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [errors, setErrors] = useState<Record<string, Record<string, string>>>({});
   const pendingUpdatesRef = useRef<Record<number, Record<string, any>>>({});
+  const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
+  const [selectedColumn, setSelectedColumn] = useState<Column | null>(null);
+  const [newColumnName, setNewColumnName] = useState('');
 
   // Fetch paginated data
   const {
@@ -272,7 +259,12 @@ export function ResizableTable({ workspaceId, tableId, columns: initialColumns, 
 
   // Update local state when props change
   useEffect(() => {
-    setColumns(initialColumns);
+    setColumns(initialColumns.map(col => ({
+      ...col,
+      header: col.name || col.header, // Handle both name and header properties
+      color: col.color,
+      textColor: col.text_color || col.textColor || '', // Handle both snake_case and camelCase, default to empty string
+    })));
     setColumnOrder(initialColumns.map(col => col.id.toString()));
     setTotalWidth(initialColumns.reduce((sum, col) => sum + col.width, 0) + 100);
   }, [initialColumns]);
@@ -438,6 +430,56 @@ export function ResizableTable({ workspaceId, tableId, columns: initialColumns, 
     [updateColumnWidthMutation]
   );
 
+  // Add mutation for updating column color
+  const updateColumnColorMutation = useMutation({
+    mutationFn: ({ columnId, color, textColor }: { columnId: string; color?: string; textColor?: string }) => 
+      tablesApi.updateColumn(workspaceId, tableId, columnId, { color, textColor }),
+    onMutate: async ({ columnId, color, textColor }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['table', tableId] });
+
+      // Snapshot the previous value
+      const previousData = queryClient.getQueryData(['table', tableId]);
+
+      // Update both local state and query cache
+      const updateColumns = (cols: Column[]) => 
+        cols.map(col => col.id === columnId ? { 
+          ...col, 
+          ...(color !== undefined ? { color } : {}),
+          ...(textColor !== undefined ? { textColor } : {})
+        } : col);
+
+      // Update local state
+      setColumns(prev => updateColumns(prev));
+
+      // Update query cache
+      queryClient.setQueryData(['table', tableId], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          columns: {
+            ...old.columns,
+            columns: updateColumns(old.columns.columns),
+          },
+        };
+      });
+
+      return { previousData };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousData) {
+        // Restore both states
+        queryClient.setQueryData(['table', tableId], context.previousData);
+        const previousColumns = (context.previousData as any)?.columns?.columns || [];
+        setColumns(previousColumns);
+      }
+      toast.error('Failed to update column color');
+    },
+    onSuccess: () => {
+      toast.success('Column color updated');
+    },
+  });
+
   const handleAddColumn = (data: { name: string; type: ColumnType; description?: string }) => {
     addColumnMutation.mutate(data);
   };
@@ -571,13 +613,27 @@ export function ResizableTable({ workspaceId, tableId, columns: initialColumns, 
     }
   };
 
+  const handleRename = () => {
+    if (!selectedColumn || !newColumnName.trim()) return;
+    
+    const newColumns = columns.map(col =>
+      col.id === selectedColumn.id ? { ...col, header: newColumnName } : col
+    );
+    setColumns(newColumns);
+    updateColumnMutation.mutate({
+      columnId: selectedColumn.id.toString(),
+      name: newColumnName,
+    });
+    setIsRenameDialogOpen(false);
+  };
+
   // Get ordered columns for display
   const orderedColumns = columnOrder.map(id => 
     columns.find(col => col.id.toString() === id)!
   );
 
   return (
-    <div className="relative h-[calc(100vh-12rem)] p-1 rounded-lg overflow-hidden border shadow-sm">
+    <div className="relative h-[calc(100vh-12rem)] p-1 rounded-lg overflow-hidden border shadow-sm" style={{ border: '1px solid var(--table-border-color)', backgroundColor: 'var(--table-background-color)', color: 'var(--table-text-color)' }}>
       {isSaving && (
         <div className="absolute top-4 right-4 px-3 py-1.5 bg-emerald-50 text-emerald-600 text-sm rounded-md font-medium border border-emerald-200/50 shadow-sm dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-900">
           Saving changes...
@@ -592,7 +648,7 @@ export function ResizableTable({ workspaceId, tableId, columns: initialColumns, 
           <div className="flex-1 overflow-hidden flex flex-col">
             {/* Header container that syncs with body scroll */}
             <div className="min-h-[40px] sticky top-0 z-10 shadow-sm overflow-hidden">
-              <div className="flex" style={{ width: totalWidth, background: 'white' }}>
+              <div className="flex" style={{ width: totalWidth + 40 /* 40 is added to account for the scrollbar, offsetted below the header add button */, background: 'white',  }}>
                 <SortableContext 
                   items={columnOrder}
                   strategy={horizontalListSortingStrategy}
@@ -614,31 +670,104 @@ export function ResizableTable({ workspaceId, tableId, columns: initialColumns, 
                       }}
                     >
                       <div className="flex items-center h-full w-full cursor-col-resize relative group">
-                        <input
-                          type="text"
-                          value={column.header}
-                          onChange={(e) => {
-                            const newColumns = columns.map(col =>
-                              col.id === column.id ? { ...col, header: e.target.value } : col
-                            );
-                            setColumns(newColumns);
-                            updateColumnMutation.mutate({
-                              columnId: column.id.toString(),
-                              name: e.target.value,
-                            });
-                          }}
-                          className="absolute inset-0 bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-primary/20 rounded-none px-4 py-2 w-full focus:z-30 text-foreground font-medium dark:focus:ring-primary/40"
-                        />
-                        <span className="pointer-events-none px-4 py-2 w-full truncate font-medium text-foreground">
-                          {column.header}
-                        </span>
+                        <div className="flex items-center justify-between w-full pr-2">
+                          <span className="px-4 py-2 truncate font-medium text-foreground" style={{ 
+                            color: column.textColor || 'inherit'
+                          }}>
+                            {column.header}
+                          </span>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button
+                                onClick={(e) => e.stopPropagation()}
+                                className="p-1 rounded-md hover:bg-accent/50 transition-colors hover:opacity-100"
+                                style={{ color: column.textColor || 'inherit' }}
+                              >
+                                <ChevronDownIcon className="h-4 w-4" color={column.textColor || 'inherit' } />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-[180px]">
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setSelectedColumn(column);
+                                  setNewColumnName(column.header);
+                                  setIsRenameDialogOpen(true);
+                                }}
+                              >
+                                <PencilIcon className="h-4 w-4 mr-2" />
+                                Rename
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuSub>
+                                <DropdownMenuSubTrigger>
+                                  <SwatchIcon className="h-4 w-4 mr-2" />
+                                  Set Background Color
+                                </DropdownMenuSubTrigger>
+                                <DropdownMenuSubContent className="p-1">
+                                  <div className="grid grid-cols-4 gap-1">
+                                    {COLUMN_COLORS.map((color) => (
+                                      <button
+                                        key={color.value}
+                                        className={`w-8 h-8 rounded-md border transition-all ${
+                                          column.color === color.value ? 'ring-2 ring-primary ring-offset-2' : 'hover:scale-110'
+                                        }`}
+                                        style={{ 
+                                          background: color.value || 'hsl(var(--background))',
+                                          borderColor: 'hsl(var(--border))'
+                                        }}
+                                        title={color.name}
+                                        onClick={() => {
+                                          updateColumnColorMutation.mutate({
+                                            columnId: column.id,
+                                            color: color.value,
+                                          });
+                                        }}
+                                      />
+                                    ))}
+                                  </div>
+                                </DropdownMenuSubContent>
+                              </DropdownMenuSub>
+                              <DropdownMenuSub>
+                                <DropdownMenuSubTrigger>
+                                  <SwatchIcon className="h-4 w-4 mr-2" />
+                                  Set Text Color
+                                </DropdownMenuSubTrigger>
+                                <DropdownMenuSubContent className="p-1">
+                                  <div className="grid grid-cols-4 gap-1">
+                                    {TEXT_COLORS.map((color) => (
+                                      <button
+                                        key={color.value}
+                                        className={`w-8 h-8 rounded-md border transition-all ${
+                                          column.textColor === color.value ? 'ring-2 ring-primary ring-offset-2' : 'hover:scale-110'
+                                        }`}
+                                        style={{ 
+                                          background: color.value || 'hsl(var(--background))',
+                                          borderColor: 'hsl(var(--border))'
+                                        }}
+                                        title={color.name}
+                                        onClick={() => {
+                                          updateColumnColorMutation.mutate({
+                                            columnId: column.id,
+                                            textColor: color.value,
+                                          });
+                                        }}
+                                      />
+                                    ))}
+                                  </div>
+                                </DropdownMenuSubContent>
+                              </DropdownMenuSub>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                         <div className="absolute right-0 top-1/2 -translate-y-1/2 w-px h-4/5 bg-border opacity-50 group-hover:opacity-100 dark:bg-border/80" />
                       </div>
                     </SortableColumn>
                   ))}
                 </SortableContext>
                 {/* Add Column button */}
-                <div className="flex items-center justify-end px-2 border-r border-b-2 border-border min-w-[100px] flex-1 dark:border-border/80 bg-white dark:bg-background">
+                <div className="flex items-center justify-end px-2 border-r border-b-2 border-border min-w-[100px] flex-1 dark:border-border/80 bg-white dark:bg-background pr-10"
+                
+                >
                   <button
                     onClick={() => setIsAddColumnDialogOpen(true)}
                     className="p-1.5 text-muted-foreground hover:text-primary hover:bg-accent/20 rounded-md transition-colors"
@@ -689,9 +818,9 @@ export function ResizableTable({ workspaceId, tableId, columns: initialColumns, 
                               className="relative flex-shrink-0"
                               style={{ 
                                 width: column.width,
-                                borderRight: '1px solid hsl(var(--border) / 0.8)',
-                                borderBottom: '1px solid hsl(var(--border) / 0.8)',
-                                background: 'white',
+                                borderRight: '1px solid var(--table-border-color)',
+                                borderBottom: '1px solid var(--table-border-color)',
+                                background: column.color || 'var(--table-background-color)',
                               }}
                             >
                               <div className="h-full relative">
@@ -700,7 +829,7 @@ export function ResizableTable({ workspaceId, tableId, columns: initialColumns, 
                                     {errors[virtualRow.index.toString()][column.id]}
                                   </div>
                                 )}
-                                <div className={`absolute inset-0 pointer-events-none border-2 transition-colors rounded-sm ${
+                                <div className={`absolute inset-0 border ${
                                   hasError ? 'border-red-500/50' : 'border-transparent'
                                 }`} />
                                 <input
@@ -708,7 +837,14 @@ export function ResizableTable({ workspaceId, tableId, columns: initialColumns, 
                                   value={row?.data[column.id] || ''}
                                   onChange={(e) => updateCell(virtualRow.index, column.id, e.target.value)}
                                   className="absolute inset-0 bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-primary/20 hover:bg-accent/5 rounded-none px-4 py-2 w-full focus:z-30 text-foreground dark:hover:bg-accent/20 dark:focus:ring-primary/40"
+                                  style={{ color: column.textColor || 'inherit' }}
                                 />
+                                <div
+                                  className="absolute inset-0 px-4 py-2 truncate pointer-events-none"
+                                  style={{ color: column.textColor || 'inherit' }}
+                                >
+                                  {row?.data[column.id] || ''}
+                                </div>
                               </div>
                             </div>
                           );
@@ -738,6 +874,40 @@ export function ResizableTable({ workspaceId, tableId, columns: initialColumns, 
           </div>
         </div>
       </DndContext>
+
+      {/* Rename Dialog */}
+      <Dialog open={isRenameDialogOpen} onOpenChange={setIsRenameDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename Column</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              value={newColumnName}
+              onChange={(e) => setNewColumnName(e.target.value)}
+              placeholder="Enter column name"
+              className="w-full"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleRename();
+                }
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsRenameDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleRename}>
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AddColumnDialog
         isOpen={isAddColumnDialogOpen}

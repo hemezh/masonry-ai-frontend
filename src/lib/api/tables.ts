@@ -15,6 +15,9 @@ export interface Column {
   description?: string;
   width?: number;
   samples?: string[];
+  color?: string;
+  text_color?: string;
+  textColor?: string;
 }
 
 export const ColumnSchema = z.object({
@@ -24,9 +27,12 @@ export const ColumnSchema = z.object({
   description: z.string().optional(),
   width: z.number().optional(),
   samples: z.array(z.string()).optional(),
+  color: z.string().optional(),
+  text_color: z.string().optional(),
 }).transform((data): Column => ({
   ...data,
   type: data.type || 's', // Default to string type if empty
+  textColor: data.text_color, // Map snake_case to camelCase
 }));
 
 export const TableSchema = z.object({
@@ -182,10 +188,17 @@ export const tablesApi = {
   },
 
   // Update a column
-  updateColumn: async (workspaceId: string, tableId: string, typeKey: TypedColumnKey, data: { name?: string; description?: string; width?: number }) => {
+  updateColumn: async (workspaceId: string, tableId: string, typeKey: TypedColumnKey, data: { name?: string; description?: string; width?: number; color?: string; textColor?: string }) => {
+    // Convert textColor to text_color for backend
+    const requestData = {
+      ...data,
+      text_color: data.textColor,
+      textColor: undefined // Remove textColor from the request
+    };
+
     const response = await fetchApi(`/workspaces/${workspaceId}/tables/${tableId}/columns/${typeKey}`, {
       method: 'PUT',
-      body: JSON.stringify(data),
+      body: JSON.stringify(requestData),
     });
     
     return TableSchema.parse(await response.json());
