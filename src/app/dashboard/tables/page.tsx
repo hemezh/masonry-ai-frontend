@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { InformationCircleIcon } from "@heroicons/react/24/outline";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,19 +43,17 @@ const log = (message: string, data?: any) => {
 export default function TablesPage() {
   const router = useRouter();
   const { currentWorkspace, isLoading: isLoadingWorkspace } = useWorkspace();
-  const [tables, setTables] = useState<Table[]>([]);
   const [filter, setFilter] = useState<TableFilter>('all');
   const [tableToDelete, setTableToDelete] = useState<Table | null>(null);
   const [tableToEdit, setTableToEdit] = useState<Table | null>(null);
+  const [tableToArchive, setTableToArchive] = useState<Table | null>(null);
   const [editForm, setEditForm] = useState({ name: '', description: '' });
   const [isCreateTableOpen, setIsCreateTableOpen] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
-  const fetchCount = useRef(0);
-  const strictModeRender = useRef(false);
 
   const { 
     isLoading,
-    listTables,
+    data: tables = [],
     deleteTable,
     updateTable,
     createTableFromCSV,
@@ -63,30 +62,9 @@ export default function TablesPage() {
   } = useTable({
     onError: (error) => {
       log('Table operation error:', error);
-    }
+    },
+    filter: filter
   });
-
-  const fetchTables = useCallback(async () => {
-    const currentFetchCount = ++fetchCount.current;
-    log(`Starting fetch #${currentFetchCount}`);
-
-    try {
-      const fetchedTables = await listTables();
-      if (currentFetchCount === fetchCount.current) {
-        setTables(fetchedTables || []);
-      }
-    } catch (error) {
-      log(`Fetch #${currentFetchCount} failed:`, error);
-    }
-  }, [listTables]);
-
-  useEffect(() => {
-    if (strictModeRender.current) {
-      return;
-    }
-    strictModeRender.current = true;
-    fetchTables();
-  }, [fetchTables]);
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,9 +76,6 @@ export default function TablesPage() {
     });
 
     if (updatedTable) {
-      setTables(prevTables => 
-        prevTables.map(t => t.id === updatedTable.id ? updatedTable : t)
-      );
       setTableToEdit(null);
     }
   };
@@ -140,6 +115,15 @@ export default function TablesPage() {
         onFilterChange={setFilter}
       />
 
+      {filter === 'archived' && (
+        <div className="mb-6 flex items-center gap-3 rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800 dark:border-yellow-900 dark:bg-yellow-900/30 dark:text-yellow-200">
+          <InformationCircleIcon className="h-5 w-5 flex-shrink-0" />
+          <p>
+            Archived tables are automatically deleted after 30 days. To prevent deletion, unarchive a table before the 30-day period ends.
+          </p>
+        </div>
+      )}
+
       <TableList
         tables={filteredTables}
         isLoading={isLoading}
@@ -151,20 +135,11 @@ export default function TablesPage() {
           });
         }}
         onDelete={setTableToDelete}
-        onArchive={async (table) => {
-          const updatedTable = await archiveTable(table.id);
-          if (updatedTable) {
-            setTables(prevTables => 
-              prevTables.map(t => t.id === updatedTable.id ? updatedTable : t)
-            );
-          }
-        }}
+        onArchive={(table) => setTableToArchive(table)}
         onUnarchive={async (table) => {
           const updatedTable = await unarchiveTable(table.id);
           if (updatedTable) {
-            setTables(prevTables => 
-              prevTables.map(t => t.id === updatedTable.id ? updatedTable : t)
-            );
+            setTableToEdit(null);
           }
         }}
       />
@@ -193,13 +168,39 @@ export default function TablesPage() {
                 if (tableToDelete) {
                   const success = await deleteTable(tableToDelete.id);
                   if (success) {
-                    setTables(prevTables => prevTables.filter(t => t.id !== tableToDelete.id));
                     setTableToDelete(null);
                   }
                 }
               }}
             >
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!tableToArchive} onOpenChange={(open) => !open && setTableToArchive(null)}>
+        <AlertDialogContent className="bg-background">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Archive this table?</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              This will archive the table &quot;{tableToArchive?.name}&quot;. Archived tables will be automatically deleted after 30 days.
+              You can unarchive the table before then to prevent deletion.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (tableToArchive) {
+                  const updatedTable = await archiveTable(tableToArchive.id);
+                  if (updatedTable) {
+                    setTableToArchive(null);
+                  }
+                }
+              }}
+            >
+              Archive
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -257,7 +258,7 @@ export default function TablesPage() {
         open={isCreateTableOpen}
         onOpenChange={setIsCreateTableOpen}
         workspaceId={currentWorkspace?.id || ''}
-        onSuccess={fetchTables}
+        onSuccess={() => {}}
       />
 
       <CSVImportDialog
