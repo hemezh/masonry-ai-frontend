@@ -14,6 +14,7 @@ export interface Column {
   type: ColumnType;
   description?: string;
   width?: number;
+  samples?: string[];
 }
 
 export const ColumnSchema = z.object({
@@ -22,6 +23,7 @@ export const ColumnSchema = z.object({
   type: ColumnTypeSchema,
   description: z.string().optional(),
   width: z.number().optional(),
+  samples: z.array(z.string()).optional(),
 }).transform((data): Column => ({
   ...data,
   type: data.type || 's', // Default to string type if empty
@@ -37,9 +39,13 @@ export const TableSchema = z.object({
   }).default({ columns: [] }),
   created_at: z.string(),
   updated_at: z.string(),
+  archived: z.boolean().default(false),
+  archived_at: z.string().nullable().optional(),
 }).transform((data) => ({
   ...data,
   columns: data.columns || { columns: [] },
+  archived: data.archived || false,
+  archived_at: data.archived_at || null,
 }));
 
 // Schema for column addition response
@@ -61,7 +67,7 @@ export const TableDataSchema = z.object({
 export type Table = z.infer<typeof TableSchema>;
 export type TableData = z.infer<typeof TableDataSchema>;
 
-const API_BASE = `${process.env.NEXT_PUBLIC_API_URL}`;
+const API_BASE = `${process.env.NEXT_PUBLIC_API_BASE_URL}`;
 
 // Helper function for API calls
 const fetchApi = async (endpoint: string, options?: RequestInit) => {
@@ -85,6 +91,35 @@ const fetchApi = async (endpoint: string, options?: RequestInit) => {
   return response;
 };
 
+export interface TypeInferenceRequest {
+  name: string;
+  samples: string[];
+}
+
+export interface TypeInferenceResponse {
+  types: Record<string, ColumnType>;
+  shouldSkipFirstRow: boolean;
+  reasoning: string;
+}
+
+export interface TableDataResponse {
+  id: number;
+  table_id: string;
+  data: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  pagination: {
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+  };
+}
+
 export const tablesApi = {
   // Create a new table
   createTable: async (workspaceId: string, data: { name: string; description?: string }) => {
@@ -97,8 +132,12 @@ export const tablesApi = {
   },
 
   // List all tables in a workspace
-  listTables: async (workspaceId: string) => {
-    const response = await fetchApi(`/workspaces/${workspaceId}/tables`);
+  listTables: async (workspaceId: string, archived?: boolean) => {
+    const params = new URLSearchParams();
+    if (archived !== undefined) {
+      params.append('archived', archived.toString());
+    }
+    const response = await fetchApi(`/workspaces/${workspaceId}/tables${params.toString() ? `?${params.toString()}` : ''}`);
     return z.array(TableSchema).parse(await response.json());
   },
 
@@ -173,9 +212,13 @@ export const tablesApi = {
   },
 
   // List table data
-  listTableData: async (workspaceId: string, tableId: string) => {
-    const response = await fetchApi(`/workspaces/${workspaceId}/tables/${tableId}/data`);
-    return z.array(TableDataSchema).parse(await response.json());
+  listTableData: async (workspaceId: string, tableId: string, page: number = 1, pageSize: number = 50): Promise<PaginatedResponse<TableDataResponse>> => {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      pageSize: pageSize.toString(),
+    });
+    const response = await fetchApi(`/workspaces/${workspaceId}/tables/${tableId}/data?${params.toString()}`);
+    return response.json();
   },
 
   // Update table data
@@ -221,11 +264,55 @@ export const tablesApi = {
     return response.json();
   },
 
-  createTableFromCSV: async (workspaceId: string, formData: FormData) => {
-    const response = await fetchApi(`/workspaces/${workspaceId}/tables/import-csv`, {
+  async createTableFromCSV(workspaceId: string, formData: FormData): Promise<{ id: string }> {
+    const auth = getAuth();
+    const token = await auth.currentUser?.getIdToken();
+
+    const response = await fetch(`${API_BASE}/workspaces/${workspaceId}/tables/import-csv`, {
       method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
       body: formData,
     });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Failed to create table from CSV: ${error}`);
+    }
+
     return response.json();
+  },
+
+  // Infer column types using AI
+  async inferColumnTypes(columns: TypeInferenceRequest[]): Promise<TypeInferenceResponse> {
+    const response = await fetchApi('/ai/infer-types', {
+      method: 'POST',
+      body: JSON.stringify({ columns }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to infer column types');
+    }
+
+    return response.json();
+  },
+
+  // Archive a table
+  archiveTable: async (workspaceId: string, id: string) => {
+    const response = await fetchApi(`/workspaces/${workspaceId}/tables/${id}/archive`, {
+      method: 'POST',
+    });
+    
+    return TableSchema.parse(await response.json());
+  },
+
+  // Unarchive a table
+  unarchiveTable: async (workspaceId: string, id: string) => {
+    const response = await fetchApi(`/workspaces/${workspaceId}/tables/${id}/unarchive`, {
+      method: 'POST',
+    });
+    
+    return TableSchema.parse(await response.json());
   },
 } as const; 

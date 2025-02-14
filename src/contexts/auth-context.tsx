@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 
 interface AuthContextType {
   user: AuthUser | null;
-  loading: boolean;
+  isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
@@ -17,7 +17,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
   const setAuthToken = (token: string | null) => {
@@ -34,7 +34,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Subscribe to auth state changes
     const unsubscribe = firebaseAuth.onAuthStateChanged(async (user) => {
       setUser(user);
-      setLoading(false);
+      setIsLoading(false);
       
       if (user) {
         const token = await user.getIdToken();
@@ -97,7 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const value = {
     user,
-    loading,
+    isLoading,
     signIn,
     signUp,
     signInWithGoogle,
