@@ -648,7 +648,7 @@ export function ResizableTable({ workspaceId, tableId, columns: initialColumns, 
           <div className="flex-1 overflow-hidden flex flex-col">
             {/* Header container that syncs with body scroll */}
             <div className="min-h-[40px] sticky top-0 z-10 shadow-sm overflow-hidden">
-              <div className="flex" style={{ width: totalWidth, background: 'white' }}>
+              <div className="flex" style={{ width: totalWidth + 40, background: 'white',  }}>
                 <SortableContext 
                   items={columnOrder}
                   strategy={horizontalListSortingStrategy}
@@ -765,7 +765,9 @@ export function ResizableTable({ workspaceId, tableId, columns: initialColumns, 
                   ))}
                 </SortableContext>
                 {/* Add Column button */}
-                <div className="flex items-center justify-end px-2 border-r border-b-2 border-border min-w-[100px] flex-1 dark:border-border/80 bg-white dark:bg-background">
+                <div className="flex items-center justify-end px-2 border-r border-b-2 border-border min-w-[100px] flex-1 dark:border-border/80 bg-white dark:bg-background pr-10"
+                
+                >
                   <button
                     onClick={() => setIsAddColumnDialogOpen(true)}
                     className="p-1.5 text-muted-foreground hover:text-primary hover:bg-accent/20 rounded-md transition-colors"
