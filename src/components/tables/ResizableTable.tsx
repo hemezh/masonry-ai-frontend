@@ -680,9 +680,10 @@ export function ResizableTable({ workspaceId, tableId, columns: initialColumns, 
                             <DropdownMenuTrigger asChild>
                               <button
                                 onClick={(e) => e.stopPropagation()}
-                                className="p-1 rounded-md hover:bg-accent/20 transition-colors opacity-0 group-hover:opacity-100"
+                                className="p-1 rounded-md hover:bg-accent/50 transition-colors hover:opacity-100"
+                                style={{ color: column.textColor || 'inherit' }}
                               >
-                                <ChevronDownIcon className="h-4 w-4 text-muted-foreground" />
+                                <ChevronDownIcon className="h-4 w-4" color={column.textColor || 'inherit' } />
                               </button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-[180px]">
