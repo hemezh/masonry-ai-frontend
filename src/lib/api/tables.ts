@@ -40,10 +40,12 @@ export const TableSchema = z.object({
   created_at: z.string(),
   updated_at: z.string(),
   archived: z.boolean().default(false),
+  archived_at: z.string().nullable().optional(),
 }).transform((data) => ({
   ...data,
   columns: data.columns || { columns: [] },
   archived: data.archived || false,
+  archived_at: data.archived_at || null,
 }));
 
 // Schema for column addition response
@@ -130,8 +132,12 @@ export const tablesApi = {
   },
 
   // List all tables in a workspace
-  listTables: async (workspaceId: string) => {
-    const response = await fetchApi(`/workspaces/${workspaceId}/tables`);
+  listTables: async (workspaceId: string, archived?: boolean) => {
+    const params = new URLSearchParams();
+    if (archived !== undefined) {
+      params.append('archived', archived.toString());
+    }
+    const response = await fetchApi(`/workspaces/${workspaceId}/tables${params.toString() ? `?${params.toString()}` : ''}`);
     return z.array(TableSchema).parse(await response.json());
   },
 
