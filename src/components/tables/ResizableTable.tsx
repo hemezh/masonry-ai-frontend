@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { Resizable, ResizeCallbackData } from 'react-resizable';
-import { PlusIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, SwatchIcon, PencilIcon } from '@heroicons/react/24/outline';
+import { ChevronDownIcon } from '@heroicons/react/24/solid';
 import { DndContext, DragEndEvent, MouseSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -11,13 +12,46 @@ import { AddColumnDialog } from './add-column-dialog';
 import { toast } from 'sonner';
 import 'react-resizable/css/styles.css';
 import debounce from 'lodash/debounce';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+} from "@/components/ui/dropdown-menu";
+
+// Predefined colors for columns
+const COLUMN_COLORS = [
+  { name: 'Default', value: '' },
+  { name: 'Red', value: '#fca5a5' },
+  { name: 'Orange', value: '#fdba74' },
+  { name: 'Yellow', value: '#fde047' },
+  { name: 'Green', value: '#86efac' },
+  { name: 'Blue', value: '#93c5fd' },
+  { name: 'Purple', value: '#d8b4fe' },
+  { name: 'Pink', value: '#f9a8d4' },
+];
 
 interface Column {
   id: string;
+  name?: string;
   header: string;
   width: number;
   type: ColumnType;
   minWidth?: number;
+  color?: string;
 }
 
 interface ResizableTableProps {
@@ -82,7 +116,7 @@ function SortableColumn({ column, onResize, children }: SortableColumnProps) {
             width: column.width,
             borderRight: '1px solid hsl(var(--border) / 0.8)',
             borderBottom: '2px solid hsl(var(--border) / 0.8)',
-            background: 'hsl(var(--background))'
+            background: column.color || 'hsl(var(--background))'
           }}
         >
           <div 
@@ -132,7 +166,9 @@ function SortableRow({ row, rowIndex, columns, updateCell, totalWidth, errors }:
                 className="relative flex-shrink-0"
                 style={{ 
                   width: column.width,
-                  borderRight: '1px solid var(--border-color, #E5E7EB)'
+                  borderRight: '1px solid hsl(var(--border) / 0.8)',
+                  borderBottom: '1px solid hsl(var(--border) / 0.8)',
+                  background: column.color || 'white',
                 }}
               >
                 <div className="h-full relative">
@@ -210,6 +246,9 @@ export function ResizableTable({ workspaceId, tableId, columns: initialColumns, 
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [errors, setErrors] = useState<Record<string, Record<string, string>>>({});
   const pendingUpdatesRef = useRef<Record<number, Record<string, any>>>({});
+  const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
+  const [selectedColumn, setSelectedColumn] = useState<Column | null>(null);
+  const [newColumnName, setNewColumnName] = useState('');
 
   // Fetch paginated data
   const {
@@ -272,7 +311,11 @@ export function ResizableTable({ workspaceId, tableId, columns: initialColumns, 
 
   // Update local state when props change
   useEffect(() => {
-    setColumns(initialColumns);
+    setColumns(initialColumns.map(col => ({
+      ...col,
+      header: col.name || col.header, // Handle both name and header properties
+      color: col.color,
+    })));
     setColumnOrder(initialColumns.map(col => col.id.toString()));
     setTotalWidth(initialColumns.reduce((sum, col) => sum + col.width, 0) + 100);
   }, [initialColumns]);
@@ -438,6 +481,53 @@ export function ResizableTable({ workspaceId, tableId, columns: initialColumns, 
     [updateColumnWidthMutation]
   );
 
+  // Add color update mutation
+  const updateColumnColorMutation = useMutation({
+    mutationFn: ({ columnId, color }: { columnId: string; color: string }) => {
+      return tablesApi.updateColumn(workspaceId, tableId, columnId, { color });
+    },
+    onMutate: async ({ columnId, color }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['table', tableId] });
+
+      // Snapshot the previous value
+      const previousData = queryClient.getQueryData(['table', tableId]);
+
+      // Update both local state and query cache
+      const updateColumns = (cols: Column[]) => 
+        cols.map(col => col.id === columnId ? { ...col, color } : col);
+
+      // Update local state
+      setColumns(prev => updateColumns(prev));
+
+      // Update query cache
+      queryClient.setQueryData(['table', tableId], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          columns: {
+            ...old.columns,
+            columns: updateColumns(old.columns.columns),
+          },
+        };
+      });
+
+      return { previousData };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousData) {
+        // Restore both states
+        queryClient.setQueryData(['table', tableId], context.previousData);
+        const previousColumns = (context.previousData as any)?.columns?.columns || [];
+        setColumns(previousColumns);
+      }
+      toast.error('Failed to update column color');
+    },
+    onSuccess: () => {
+      toast.success('Column color updated');
+    },
+  });
+
   const handleAddColumn = (data: { name: string; type: ColumnType; description?: string }) => {
     addColumnMutation.mutate(data);
   };
@@ -571,6 +661,20 @@ export function ResizableTable({ workspaceId, tableId, columns: initialColumns, 
     }
   };
 
+  const handleRename = () => {
+    if (!selectedColumn || !newColumnName.trim()) return;
+    
+    const newColumns = columns.map(col =>
+      col.id === selectedColumn.id ? { ...col, header: newColumnName } : col
+    );
+    setColumns(newColumns);
+    updateColumnMutation.mutate({
+      columnId: selectedColumn.id.toString(),
+      name: newColumnName,
+    });
+    setIsRenameDialogOpen(false);
+  };
+
   // Get ordered columns for display
   const orderedColumns = columnOrder.map(id => 
     columns.find(col => col.id.toString() === id)!
@@ -614,24 +718,63 @@ export function ResizableTable({ workspaceId, tableId, columns: initialColumns, 
                       }}
                     >
                       <div className="flex items-center h-full w-full cursor-col-resize relative group">
-                        <input
-                          type="text"
-                          value={column.header}
-                          onChange={(e) => {
-                            const newColumns = columns.map(col =>
-                              col.id === column.id ? { ...col, header: e.target.value } : col
-                            );
-                            setColumns(newColumns);
-                            updateColumnMutation.mutate({
-                              columnId: column.id.toString(),
-                              name: e.target.value,
-                            });
-                          }}
-                          className="absolute inset-0 bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-primary/20 rounded-none px-4 py-2 w-full focus:z-30 text-foreground font-medium dark:focus:ring-primary/40"
-                        />
-                        <span className="pointer-events-none px-4 py-2 w-full truncate font-medium text-foreground">
-                          {column.header}
-                        </span>
+                        <div className="flex items-center justify-between w-full pr-2">
+                          <span className="px-4 py-2 truncate font-medium text-foreground">
+                            {column.header}
+                          </span>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button
+                                onClick={(e) => e.stopPropagation()}
+                                className="p-1 rounded-md hover:bg-accent/20 transition-colors opacity-0 group-hover:opacity-100"
+                              >
+                                <ChevronDownIcon className="h-4 w-4 text-muted-foreground" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-[180px]">
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setSelectedColumn(column);
+                                  setNewColumnName(column.header);
+                                  setIsRenameDialogOpen(true);
+                                }}
+                              >
+                                <PencilIcon className="h-4 w-4 mr-2" />
+                                Rename
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuSub>
+                                <DropdownMenuSubTrigger>
+                                  <SwatchIcon className="h-4 w-4 mr-2" />
+                                  Set Color
+                                </DropdownMenuSubTrigger>
+                                <DropdownMenuSubContent className="p-1">
+                                  <div className="grid grid-cols-4 gap-1">
+                                    {COLUMN_COLORS.map((color) => (
+                                      <button
+                                        key={color.value}
+                                        className={`w-8 h-8 rounded-md border transition-all ${
+                                          column.color === color.value ? 'ring-2 ring-primary ring-offset-2' : 'hover:scale-110'
+                                        }`}
+                                        style={{ 
+                                          background: color.value || 'hsl(var(--background))',
+                                          borderColor: 'hsl(var(--border))'
+                                        }}
+                                        title={color.name}
+                                        onClick={() => {
+                                          updateColumnColorMutation.mutate({
+                                            columnId: column.id,
+                                            color: color.value,
+                                          });
+                                        }}
+                                      />
+                                    ))}
+                                  </div>
+                                </DropdownMenuSubContent>
+                              </DropdownMenuSub>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                         <div className="absolute right-0 top-1/2 -translate-y-1/2 w-px h-4/5 bg-border opacity-50 group-hover:opacity-100 dark:bg-border/80" />
                       </div>
                     </SortableColumn>
@@ -691,7 +834,7 @@ export function ResizableTable({ workspaceId, tableId, columns: initialColumns, 
                                 width: column.width,
                                 borderRight: '1px solid hsl(var(--border) / 0.8)',
                                 borderBottom: '1px solid hsl(var(--border) / 0.8)',
-                                background: 'white',
+                                background: column.color || 'white',
                               }}
                             >
                               <div className="h-full relative">
@@ -738,6 +881,40 @@ export function ResizableTable({ workspaceId, tableId, columns: initialColumns, 
           </div>
         </div>
       </DndContext>
+
+      {/* Rename Dialog */}
+      <Dialog open={isRenameDialogOpen} onOpenChange={setIsRenameDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename Column</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              value={newColumnName}
+              onChange={(e) => setNewColumnName(e.target.value)}
+              placeholder="Enter column name"
+              className="w-full"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleRename();
+                }
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsRenameDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleRename}>
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AddColumnDialog
         isOpen={isAddColumnDialogOpen}

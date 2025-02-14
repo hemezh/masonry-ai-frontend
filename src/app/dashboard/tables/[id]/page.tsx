@@ -32,6 +32,7 @@ export default function TablePage({ params }: { params: Promise<PageParams> }) {
     width: col.width || 200,
     type: col.type,
     minWidth: 100,
+    color: col.color,
   })) || [];
 
   const handleColumnResize = useCallback((columnId: string, width: number) => {
