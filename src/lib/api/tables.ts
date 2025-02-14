@@ -67,7 +67,7 @@ export const TableDataSchema = z.object({
 export type Table = z.infer<typeof TableSchema>;
 export type TableData = z.infer<typeof TableDataSchema>;
 
-const API_BASE = `${process.env.NEXT_PUBLIC_API_URL}`;
+const API_BASE = `${process.env.NEXT_PUBLIC_API_BASE_URL}`;
 
 // Helper function for API calls
 const fetchApi = async (endpoint: string, options?: RequestInit) => {

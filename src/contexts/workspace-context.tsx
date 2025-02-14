@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { Workspace, WorkspaceMember } from '@/types/workspace';
 import { workspaceService } from '@/services/workspace-service';
 import { useToast } from '@/components/ui/use-toast';
@@ -31,9 +31,11 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const { toast } = useToast();
-    const { user } = useAuth();
+    const { user, isLoading: isAuthLoading } = useAuth();
+    const isInitialized = useRef(false);
 
     const handleError = (error: Error) => {
+        console.error('Workspace error:', error);
         setError(error.message);
         toast({
             title: "Error",
@@ -45,6 +47,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     const refreshWorkspaces = async () => {
         try {
             setIsLoading(true);
+            setError(null);
             const workspaceList = await workspaceService.listWorkspaces();
             setWorkspaces(workspaceList);
             
@@ -81,10 +84,21 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     };
 
     useEffect(() => {
-        if (user) {
+        // Only run this effect once when the auth state is determined
+        if (!isAuthLoading && user && !isInitialized.current) {
+            isInitialized.current = true;
             refreshWorkspaces();
         }
-    }, [user]);
+        
+        // Reset state when user logs out
+        if (!isAuthLoading && !user) {
+            setWorkspaces([]);
+            setCurrentWorkspace(null);
+            setMembers([]);
+            setError(null);
+            isInitialized.current = false;
+        }
+    }, [user, isAuthLoading]);
 
     useEffect(() => {
         if (currentWorkspace) {
