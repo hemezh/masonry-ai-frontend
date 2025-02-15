@@ -4,13 +4,12 @@ import { useState, useCallback, use } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ArrowLeftIcon, ChevronRightIcon, UsersIcon, PencilIcon, TrashIcon, ShareIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, ChevronRightIcon, UsersIcon, PencilIcon, TrashIcon, ShareIcon, XMarkIcon, ArrowUpTrayIcon, SparklesIcon } from '@heroicons/react/24/outline';
 import { ResizableTable } from '@/components/tables/table/index';
 import { tablesApi } from '@/lib/api/tables';
 import { useWorkspace } from '@/contexts/workspace-context';
 import Link from 'next/link';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
-import { PanelRightCloseIcon, UploadIcon } from 'lucide-react';
 type PageParams = {
   id: string;
 };
@@ -127,7 +126,7 @@ export default function TablePage({ params }: { params: Promise<PageParams> }) {
               size="sm"
               className="text-zinc-600 dark:text-zinc-300 bg-card border border-zinc-200 dark:border-zinc-800 hover:bg-muted hover:text-zinc-900 dark:hover:text-white transition-all duration-200"
             >
-              <UploadIcon className="h-4 w-4 mr-2" />
+              <ArrowUpTrayIcon className="h-4 w-4 mr-2" />
               Share
             </Button>
 
@@ -136,7 +135,7 @@ export default function TablePage({ params }: { params: Promise<PageParams> }) {
               size="sm"
               className="text-zinc-600 dark:text-zinc-300 bg-card border border-zinc-200 dark:border-zinc-800 hover:bg-muted hover:text-zinc-900 dark:hover:text-white transition-all duration-200"
             >
-              <PanelRightCloseIcon className="h-4 w-4" />
+              <SparklesIcon className="h-4 w-4" />
             </Button>
           </div>
         </div>

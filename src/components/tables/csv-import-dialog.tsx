@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -12,9 +12,12 @@ import { tablesApi, ColumnType } from '@/lib/api/tables';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ArrowPathIcon } from "@heroicons/react/24/outline"
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
 const COLUMN_TYPE_OPTIONS = [
   { value: 's' as const, label: 'String' },
@@ -229,7 +232,7 @@ export function CSVImportDialog({
 
                 {isInferring && (
                   <div className="flex items-center justify-center space-x-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <ArrowPathIcon className="h-4 w-4 animate-spin" />
                     <span>Analyzing CSV structure...</span>
                   </div>
                 )}
