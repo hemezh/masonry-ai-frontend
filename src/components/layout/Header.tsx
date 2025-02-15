@@ -1,14 +1,6 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { ArrowUpOnSquareIcon, ChevronRightIcon, PlayIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { Button } from '../ui/button';
 import Link from 'next/link';
