@@ -11,7 +11,7 @@ const navigation = [
     { name: 'Chats', href: '/dashboard/chat', icon: ChatBubbleLeftRightIcon },
     { name: 'Tasks', href: '/dashboard/tasks', icon: ClipboardDocumentListIcon },
     {
-        name: 'Tables',
+        name: 'Data',
         href: '/dashboard/tables',
         icon: TableCellsIcon,
         current: false,

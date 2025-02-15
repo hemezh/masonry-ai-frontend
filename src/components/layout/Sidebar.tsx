@@ -1,25 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { HomeIcon, ChatBubbleLeftRightIcon, ClipboardDocumentListIcon, TableCellsIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '@/contexts/auth-context';
 import { useWorkspace } from '@/contexts/workspace-context';
 import { WorkspaceSwitcher } from '@/components/layout/workspace/workspace-switcher';
 import { NavigationMenu } from '@/components/layout/navigation/navigation-menu';
 import { UserMenu } from '@/components/layout/user/user-menu';
 import { CreateWorkspaceDialog } from '@/components/layout/workspace/create-workspace-dialog';
-
-const navigation = [
-    { name: 'Home', href: '/dashboard', icon: HomeIcon },
-    { name: 'Chats', href: '/dashboard/chat', icon: ChatBubbleLeftRightIcon },
-    { name: 'Tasks', href: '/dashboard/tasks', icon: ClipboardDocumentListIcon },
-    {
-        name: 'Tables',
-        href: '/dashboard/tables',
-        icon: TableCellsIcon,
-        current: false,
-    },
-];
 
 export default function Sidebar() {
     const { user, signOut } = useAuth();
