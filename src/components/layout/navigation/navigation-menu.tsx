@@ -12,7 +12,7 @@ const navigation = [
     { name: 'Tasks', href: '/dashboard/tasks', icon: ClipboardDocumentListIcon },
     {
         name: 'Data',
-        href: '/dashboard/tables',
+        href: '/dashboard/data',
         icon: TableCellsIcon,
         current: false,
     },

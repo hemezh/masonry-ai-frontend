@@ -13,8 +13,11 @@ interface TableHeaderProps {
 
 export function TableHeader({ onCreateTable, onImportCSV }: TableHeaderProps) {
   return (
-    <div className="flex justify-between items-center mb-6">
-      <h1 className="text-2xl font-bold">Tables</h1>
+    <div className="flex justify-between items-center mb-4">
+      <div>
+        <h1 className="text-2xl font-semibold text-foreground">Tables</h1>
+        <p className="text-sm text-muted-foreground">Manage your data tables</p>
+      </div>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">

@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ArrowLeftIcon, ChevronRightIcon, UsersIcon, PencilIcon, TrashIcon, ShareIcon, XMarkIcon, ArrowUpTrayIcon, SparklesIcon } from '@heroicons/react/24/outline';
-import { ResizableTable } from '@/components/tables/table/index';
+import { ResizableTable } from '@/components/data/table/index';
 import { tablesApi } from '@/lib/api/tables';
 import { useWorkspace } from '@/contexts/workspace-context';
 import Link from 'next/link';
@@ -81,7 +81,7 @@ export default function TablePage({ params }: { params: Promise<PageParams> }) {
         <div className="sticky top-0 z-50 flex items-center justify-between px-2 mb-6">
           <div className="flex items-center gap-2">
             <Link
-              href="/dashboard/tables"
+              href="/dashboard/data"
               className="group flex items-center gap-2 text-sm font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-100 transition-all duration-200"
             >
               <ArrowLeftIcon className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform duration-200" />
