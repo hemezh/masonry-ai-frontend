@@ -35,6 +35,9 @@ import { MessageListContainer } from '@/components/workflow/message-list-contain
 import { ArrowPathIcon } from '@heroicons/react/24/outline';
 import { cn } from '@/lib/utils';
 import { timeStamp } from 'console';
+import { LoadingState } from '@/components/data/loading-state';
+import { WorkspaceWarning } from '@/components/data/workspace-warning';
+import { useWorkspace as useWorkspaceContext } from '@/contexts/workspace-context';
 
 /**
  * Represents the complete state of a workflow in the system.
@@ -72,16 +75,14 @@ function WorkflowChatPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { setWorkflow: setContextWorkflow } = useWorkflowContext();
+  const { currentWorkspace, isLoading: isLoadingWorkspace } = useWorkspaceContext();
 
   // Track initialization state with refs instead of state
   const hasOptimisticUpdate = useRef(false);
   const hasHandledInitialPrompt = useRef(false);
   const isInitialMount = useRef(true);
 
-  /**
-   * Core state management
-   * Simplified to only essential state that affects rendering
-   */
+  // Core state management - moved all useState hooks together
   const [messages, setMessages] = useState<ChatMessageType[]>([]);
   const [workflowState, setWorkflowState] = useState<WorkflowState>({
     workflow: null,
@@ -90,19 +91,37 @@ function WorkflowChatPageContent() {
   });
   const [isMessageSending, setIsMessageSending] = useState(false);
 
-  // Add logging for state changes
-  useEffect(() => {
-    console.log('[State Change] Messages:', messages);
-  }, [messages]);
+  // Compute layout classes early and consistently
+  const showWorkflow = workflowState.nodes.length > 0;
+  const layoutClasses = useMemo(() => ({
+    outerContainer: "h-full relative flex",
+    contentWrapper: cn(
+      "h-full w-full overflow-y-auto transition-all duration-200 ease-in-out",
+      showWorkflow ? "flex gap-4 p-4" : "flex"
+    ),
+    chatSection: cn(
+      "flex flex-col",
+      showWorkflow ? "w-[40rem] shrink-0" : "w-full max-w-[40rem] mx-auto"
+    ),
+    messagesContainer: cn(
+      "flex-1 min-h-0 relative",
+      messages.length === 0 ? "flex items-end" : ""
+    ),
+    workflowSection: showWorkflow 
+      ? cn(
+          "flex-1 rounded-lg overflow-hidden shadow-sm",
+          "bg-muted",
+          "border border-border"
+        )
+      : "",
+    loadingContainer: cn(
+      "absolute inset-0 flex items-center justify-center",
+    ),
+    loadingIcon: "h-8 w-8 animate-spin text-muted-foreground",
+    loadingText: "text-sm text-muted-foreground"
+  }), [showWorkflow, messages.length]);
 
-  useEffect(() => {
-    console.log('[State Change] WorkflowState:', workflowState);
-  }, [workflowState]);
-
-  useEffect(() => {
-    console.log('[State Change] IsMessageSending:', isMessageSending);
-  }, [isMessageSending]);
-
+  // Error handlers
   const handleChatError = useCallback((error: Error) => {
     console.log('[Error Handler] Chat error:', error);
     setMessages(prev => {
@@ -121,7 +140,11 @@ function WorkflowChatPageContent() {
     });
   }, []);
 
-  // Hook initialization with error handling
+  const handleWorkflowError = useCallback((error: Error) => {
+    console.error('Workflow error:', error);
+  }, []);
+
+  // Hook initialization
   const {
     sendMessage,
     getChat,
@@ -130,11 +153,10 @@ function WorkflowChatPageContent() {
   });
 
   const { getWorkflow } = useWorkflow({
-    onError: useCallback((error: Error) => {
-      console.error('Workflow error:', error);
-    }, [])
+    onError: handleWorkflowError
   });
 
+  // Message handling
   const handleSendMessage = useCallback(async (prompt: string) => {
     console.log('[handleSendMessage] Starting with prompt:', prompt);
     console.log('[handleSendMessage] Current state:', {
@@ -162,31 +184,22 @@ function WorkflowChatPageContent() {
       status: "loading" as const
     };
 
-    console.log('[handleSendMessage] Adding messages:', {
-      userMessage,
-      loadingMessage
-    });
-
     setMessages(prev => [...prev, userMessage, loadingMessage]);
 
     try {
-      console.log('[handleSendMessage] Sending message to API');
       await sendMessage(
         chatId,
         loadingMessage,
         prompt,
         (message) => {
-          console.log('[handleSendMessage] Message update callback:', message);
           setMessages(prev => {
             const updated = [...prev];
-            // Preserve the message's content and update status if this is the final update
             updated[updated.length - 1] = {
               ...message,
               status: message.status === "loading" && !message.blocks[0].content.endsWith("...") 
                 ? "success" 
                 : message.status
             };
-            console.log('[handleSendMessage] Updated messages:', updated);
             return updated;
           });
         }
@@ -194,7 +207,6 @@ function WorkflowChatPageContent() {
     } catch (error) {
       console.error('[handleSendMessage] Error:', error);
     } finally {
-      // Set final message status to success if still loading
       setMessages(prev => {
         const lastMessage = prev[prev.length - 1];
         if (lastMessage?.status === "loading") {
@@ -203,22 +215,33 @@ function WorkflowChatPageContent() {
             ...lastMessage,
             status: "success"
           };
-          console.log('[handleSendMessage] Setting final message status to success');
           return updated;
         }
         return prev;
       });
       
-      console.log('[handleSendMessage] Completed, setting isMessageSending to false');
       setIsMessageSending(false);
       hasOptimisticUpdate.current = false;
     }
   }, [chatId, sendMessage, isMessageSending, messages.length]);
 
-  // Combined initialization and URL prompt handling
+  // Effects
+  useEffect(() => {
+    console.log('[State Change] Messages:', messages);
+  }, [messages]);
+
+  useEffect(() => {
+    console.log('[State Change] WorkflowState:', workflowState);
+  }, [workflowState]);
+
+  useEffect(() => {
+    console.log('[State Change] IsMessageSending:', isMessageSending);
+  }, [isMessageSending]);
+
+  // Initialization effect
   useEffect(() => {
     async function initialize() {
-      if (!isInitialMount.current || !chatId) return;
+      if (!isInitialMount.current || !chatId || !currentWorkspace) return;
       
       console.log('[Initialize] Starting initialization');
       try {
@@ -259,46 +282,15 @@ function WorkflowChatPageContent() {
     }
 
     initialize();
-  }, [chatId, getChat, getWorkflow, router, searchParams, handleSendMessage, setContextWorkflow]);
+  }, [chatId, getChat, getWorkflow, router, searchParams, handleSendMessage, setContextWorkflow, currentWorkspace]);
 
-  // Workflow visibility control
-  const showWorkflow = workflowState.nodes.length > 0;
+  if (isLoadingWorkspace) {
+    return <LoadingState />;
+  }
 
-  /**
-   * Layout class computation
-   * 
-   * Updated to support dark mode theming:
-   * - Background colors now use theme-aware classes
-   * - Text colors adapt to theme
-   * - Borders and shadows adjusted for better dark mode visibility
-   */
-  const layoutClasses = useMemo(() => ({
-    outerContainer: "h-full relative flex",
-    contentWrapper: cn(
-      "h-full w-full overflow-y-auto transition-all duration-200 ease-in-out",
-      showWorkflow ? "flex gap-4 p-4" : "flex"
-    ),
-    chatSection: cn(
-      "flex flex-col",
-      showWorkflow ? "w-[40rem] shrink-0" : "w-full max-w-[40rem] mx-auto"
-    ),
-    messagesContainer: cn(
-      "flex-1 min-h-0 relative",
-      messages.length === 0 ? "flex items-end" : ""
-    ),
-    workflowSection: showWorkflow 
-      ? cn(
-          "flex-1 rounded-lg overflow-hidden shadow-sm",
-          "bg-muted",
-          "border border-border"
-        )
-      : "",
-    loadingContainer: cn(
-      "absolute inset-0 flex items-center justify-center",
-    ),
-    loadingIcon: "h-8 w-8 animate-spin text-muted-foreground",
-    loadingText: "text-sm text-muted-foreground"
-  }), [showWorkflow, messages.length]);
+  if (!currentWorkspace && !isLoadingWorkspace) {
+    return <WorkspaceWarning />;
+  }
 
   return (
     <div className={layoutClasses.outerContainer}>
@@ -358,8 +350,8 @@ export default function WorkflowChatPage() {
 
   return (
     <div className="h-full w-full overflow-y-auto test">
-      <ReactFlowProvider >
-      <WorkflowChatPageContent key={chatId} />
+      <ReactFlowProvider>
+        <WorkflowChatPageContent key={chatId} />
       </ReactFlowProvider>
     </div>
   );

@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { chatService } from '@/services/chat-service';
 import { Chat, ChatMessage } from '@/types/chat-api';
 import { useToast } from '@/hooks/use-toast';
+import { useWorkspace } from '@/contexts/workspace-context';
 
 interface UseChatOptions {
     onError?: (error: Error) => void;
@@ -11,6 +12,7 @@ export function useChat(options: UseChatOptions = {}) {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<Error | null>(null);
     const { toast } = useToast();
+    const { currentWorkspace } = useWorkspace();
 
     const handleError = useCallback((error: Error) => {
         setError(error);
@@ -23,23 +25,29 @@ export function useChat(options: UseChatOptions = {}) {
     }, [options, toast]);
 
     const createChat = useCallback(async (userId: string, message: string): Promise<Chat> => {
+        if (!currentWorkspace) {
+            throw new Error('No workspace selected');
+        }
         setIsLoading(true);
         setError(null);
         try {
-            return await chatService.createChat({ user_id: userId, message });
+            return await chatService.createChat(currentWorkspace.id, { user_id: userId, message });
         } catch (err) {
             handleError(err as Error);
             throw err;
         } finally {
             setIsLoading(false);
         }
-    }, [handleError]);
+    }, [handleError, currentWorkspace]);
 
     const listChats = useCallback(async (page?: number, limit?: number): Promise<{ chats: Chat[], meta: { total: number, total_pages: number, page: number } }> => {
+        if (!currentWorkspace) {
+            throw new Error('No workspace selected');
+        }
         setIsLoading(true);
         setError(null);
         try {
-            const response = await chatService.listChats(page, limit);
+            const response = await chatService.listChats(currentWorkspace.id, page, limit);
             return {
                 chats: response.data,
                 meta: response.meta
@@ -50,33 +58,39 @@ export function useChat(options: UseChatOptions = {}) {
         } finally {
             setIsLoading(false);
         }
-    }, [handleError]);
+    }, [handleError, currentWorkspace]);
 
     const getChat = useCallback(async (id: string): Promise<Chat> => {
+        if (!currentWorkspace) {
+            throw new Error('No workspace selected');
+        }
         setIsLoading(true);
         setError(null);
         try {
-            return await chatService.getChat(id);
+            return await chatService.getChat(currentWorkspace.id, id);
         } catch (err) {
             handleError(err as Error);
             throw err;
         } finally {
             setIsLoading(false);
         }
-    }, [handleError]);
+    }, [handleError, currentWorkspace]);
 
     const getChatMessages = useCallback(async (chatId: string): Promise<ChatMessage[]> => {
+        if (!currentWorkspace) {
+            throw new Error('No workspace selected');
+        }
         setIsLoading(true);
         setError(null);
         try {
-            return await chatService.getChatMessages(chatId);
+            return await chatService.getChatMessages(currentWorkspace.id, chatId);
         } catch (err) {
             handleError(err as Error);
             throw err;
         } finally {
             setIsLoading(false);
         }
-    }, [handleError]);
+    }, [handleError, currentWorkspace]);
 
     const sendMessage = useCallback(async (
         chatId: string,
@@ -84,29 +98,35 @@ export function useChat(options: UseChatOptions = {}) {
         message: string,
         onUpdate: (message: ChatMessage) => void
     ): Promise<void> => {
+        if (!currentWorkspace) {
+            throw new Error('No workspace selected');
+        }
         setIsLoading(true);
         setError(null);
         try {
-            return await chatService.sendMessage(chatId, { message }, previousMessage, onUpdate);
+            return await chatService.sendMessage(currentWorkspace.id, chatId, { message }, previousMessage, onUpdate);
         } catch (err) {
             handleError(err as Error);
             throw err;
         } finally {
             setIsLoading(false);
         }
-    }, [handleError]);
+    }, [handleError, currentWorkspace]);
 
     const deleteChat = useCallback(async (id: string): Promise<void> => {
+        if (!currentWorkspace) {
+            throw new Error('No workspace selected');
+        }
         setIsLoading(true);
         setError(null);
         try {
-            await chatService.deleteChat(id);
+            await chatService.deleteChat(currentWorkspace.id, id);
         } catch (err) {
             handleError(err as Error);
         } finally {
             setIsLoading(false);
         }
-    }, [handleError]);
+    }, [handleError, currentWorkspace]);
 
     return {
         isChatLoading: isLoading,
@@ -116,6 +136,7 @@ export function useChat(options: UseChatOptions = {}) {
         getChat,
         getChatMessages,
         sendMessage,
-        deleteChat
+        deleteChat,
+        currentWorkspace
     };
 } 
