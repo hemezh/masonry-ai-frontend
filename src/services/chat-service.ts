@@ -14,26 +14,27 @@ import {
 class ChatService {
     private messageBuffer: Map<number, SSEEvent>;
     private nextSequence: number;
+    private BASE_PATH = '/workspaces';
 
     constructor() {
         this.messageBuffer = new Map();
         this.nextSequence = 0;
     }
 
-    async createChat(data: CreateChatRequest): Promise<Chat> {
-        const response = await apiClient.post<ChatResponse>('/chats/', data);
+    async createChat(workspaceId: string, data: CreateChatRequest): Promise<Chat> {
+        const response = await apiClient.post<ChatResponse>(`${this.BASE_PATH}/${workspaceId}/chats/`, data);
         return response.data.data;
     }
 
-    async listChats(page: number = 1, limit: number = 10): Promise<ChatsListResponse> {
-        const response = await apiClient.get<ChatsListResponse>('/chats/', {
+    async listChats(workspaceId: string, page: number = 1, limit: number = 10): Promise<ChatsListResponse> {
+        const response = await apiClient.get<ChatsListResponse>(`${this.BASE_PATH}/${workspaceId}/chats/`, {
             params: { page, limit }
         });
         return response.data;
     }
 
-    async getChat(id: string): Promise<Chat> {
-        const response = await apiClient.get<ChatResponse>(`/chats/${id}`);
+    async getChat(workspaceId: string, id: string): Promise<Chat> {
+        const response = await apiClient.get<ChatResponse>(`${this.BASE_PATH}/${workspaceId}/chats/${id}`);
         response.data.data.messages = response.data.data.messages.map(message => {
             if (message.blocks) {
                 message.steps = message.steps || {};
@@ -54,8 +55,8 @@ class ChatService {
         return response.data.data;
     }
 
-    async getChatMessages(chatId: string): Promise<ChatMessage[]> {
-        const response = await apiClient.get<MessagesResponse>(`/chats/${chatId}/messages`);
+    async getChatMessages(workspaceId: string, chatId: string): Promise<ChatMessage[]> {
+        const response = await apiClient.get<MessagesResponse>(`${this.BASE_PATH}/${workspaceId}/chats/${chatId}/messages`);
         response.data.data.forEach(message => {
             if (message.blocks) {
                 message.steps = message.steps || {};
@@ -226,13 +227,13 @@ class ChatService {
     }
 
     async sendMessage(
+        workspaceId: string,
         chatId: string,
         data: AddMessageRequest,
         previousMessage: ChatMessage,
         onMessage: (message: ChatMessage) => void
     ): Promise<void> {
         try {
-
             const token = localStorage.getItem('auth_token');
             const headers = {
                 'Content-Type': 'application/json',
@@ -240,7 +241,7 @@ class ChatService {
                 ...(apiClient.defaults.headers.common as Record<string, string>)
             };
 
-            const response = await fetch(`${apiClient.defaults.baseURL}/chats/${chatId}/messages`, {
+            const response = await fetch(`${apiClient.defaults.baseURL}${this.BASE_PATH}/${workspaceId}/chats/${chatId}/messages`, {
                 method: 'POST',
                 headers,
                 body: JSON.stringify(data)
@@ -257,7 +258,6 @@ class ChatService {
             const reader = response.body.getReader();
             await this.processSSEStream(reader, onMessage, previousMessage);
         } catch (error) {
-            // Emit error message to client
             onMessage({
                 role: "assistant",
                 blocks: [{ type: 'text', content: "An error occurred while processing your message." }],
@@ -273,8 +273,8 @@ class ChatService {
         return response.data;
     }
 
-    async deleteChat(id: string): Promise<void> {
-        await apiClient.delete(`/chats/${id}`);
+    async deleteChat(workspaceId: string, id: string): Promise<void> {
+        await apiClient.delete(`${this.BASE_PATH}/${workspaceId}/chats/${id}`);
     }
 }
 

@@ -8,18 +8,23 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { chatService } from '@/services/chat-service';
 import { Chat } from '@/types/chat-api';
 import { useChat } from '@/hooks/use-chat';
+import { LoadingState } from '@/components/data/loading-state';
+import { WorkspaceWarning } from '@/components/data/workspace-warning';
+import { useWorkspace } from '@/contexts/workspace-context';
 
 export default function WorkflowsPage() {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [chats, setChats] = useState<Chat[]>([]);
     const [isLoadingChats, setIsLoadingChats] = useState(false);
     const { deleteChat } = useChat();
+    const { currentWorkspace, isLoading: isLoadingWorkspace } = useWorkspace();
 
     useEffect(() => {
         const fetchChats = async () => {
+            if (!currentWorkspace) return;
             setIsLoadingChats(true);
             try {
-                const response = await chatService.listChats();
+                const response = await chatService.listChats(currentWorkspace.id);
                 setChats(response.data);
             } catch (error) {
                 console.error('Failed to fetch chats:', error);
@@ -29,12 +34,20 @@ export default function WorkflowsPage() {
         };
 
         fetchChats();
-    }, []);
+    }, [currentWorkspace]);
 
     const handleDelete = async (id: string) => {
         await deleteChat(id);
         setChats(chats.filter(chat => chat.id !== id));
     };
+
+    if (isLoadingWorkspace) {
+        return <LoadingState />;
+    }
+
+    if (!currentWorkspace && !isLoadingWorkspace) {
+        return <WorkspaceWarning />;
+    }
 
     return (
         <div className="p-8 ">
