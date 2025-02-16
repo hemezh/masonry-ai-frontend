@@ -1,5 +1,5 @@
 'use client';
-
+// Tables page, in UI it's represented as the "Data" tab
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTable } from '@/hooks/use-table';
