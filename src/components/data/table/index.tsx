@@ -80,7 +80,12 @@ export function ResizableTable({ workspaceId, tableId, columns: initialColumns, 
       tablesApi.updateColumn(workspaceId, tableId, columnId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['table', tableId] });
+      setIsSaving(false);
       toast.success('Column updated successfully');
+    },
+    onError: () => {
+      setIsSaving(false);
+      toast.error('Failed to update column');
     },
   });
 
@@ -142,19 +147,25 @@ export function ResizableTable({ workspaceId, tableId, columns: initialColumns, 
     },
   });
 
-  // Handlers
-  const debouncedUpdateWidth = useCallback(
-    (columnId: string, width: number) => {
-      setIsSaving(true);
-      if (resizeTimeoutRef.current) {
-        clearTimeout(resizeTimeoutRef.current);
-      }
-      resizeTimeoutRef.current = setTimeout(() => {
-        updateColumnMutation.mutate({ columnId, data: { width } });
-      }, 500);
-    },
-    [updateColumnMutation]
-  );
+  const handleColumnResize = useCallback((columnId: string, width: number) => {
+    // Immediate UI update
+    setColumns(prevColumns => {
+      const newColumns = prevColumns.map(col =>
+        col.id === columnId ? { ...col, width } : col
+      );
+      setTotalWidth(newColumns.reduce((sum, col) => sum + col.width, 0) + 100);
+      return newColumns;
+    });
+
+    // Debounced API call
+    setIsSaving(true);
+    if (resizeTimeoutRef.current) {
+      clearTimeout(resizeTimeoutRef.current);
+    }
+    resizeTimeoutRef.current = setTimeout(() => {
+      updateColumnMutation.mutate({ columnId, data: { width } });
+    }, 500);
+  }, [updateColumnMutation]);
 
   const debouncedSaveUpdates = useCallback(() => {
     const updates = pendingUpdatesRef.current;
@@ -274,30 +285,36 @@ export function ResizableTable({ workspaceId, tableId, columns: initialColumns, 
   }, [initialColumns]);
 
   return (
-    <div className="flex flex-col rounded-lg overflow-hidden border border-border">
+    <div className="flex flex-col h-full rounded-lg border border-border table-container overflow-hidden">
       <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
         <SortableContext items={columnOrder} strategy={horizontalListSortingStrategy}>
-          <TableHeader
-            columns={columns}
-            onResize={debouncedUpdateWidth}
-            onRename={handleRenameColumn}
-            onUpdateColor={handleUpdateColumnColor}
-            onUpdateTextColor={handleUpdateColumnTextColor}
-            totalWidth={totalWidth}
-          >
-            <ColumnMenu
-              onAddColumn={addColumnMutation.mutate}
-              isAddingColumn={addColumnMutation.isPending}
-            />
-          </TableHeader>
-          <TableBody
-            parentRef={parentRef as React.RefObject<HTMLDivElement>}
-            columns={columns}
-            rows={flatData}
-            totalWidth={totalWidth}
-            errors={errors}
-            onUpdateCell={handleUpdateCell}
-          />
+          <div className="flex flex-col h-full">
+            <div className="flex-shrink-0">
+              <TableHeader
+                columns={columns}
+                onResize={handleColumnResize}
+                onRename={handleRenameColumn}
+                onUpdateColor={handleUpdateColumnColor}
+                onUpdateTextColor={handleUpdateColumnTextColor}
+                totalWidth={totalWidth}
+              >
+                <ColumnMenu
+                  onAddColumn={addColumnMutation.mutate}
+                  isAddingColumn={addColumnMutation.isPending}
+                />
+              </TableHeader>
+            </div>
+            <div className="flex-1 min-h-0 relative">
+              <TableBody
+                parentRef={parentRef as React.RefObject<HTMLDivElement>}
+                columns={columns}
+                rows={flatData}
+                totalWidth={totalWidth}
+                errors={errors}
+                onUpdateCell={handleUpdateCell}
+              />
+            </div>
+          </div>
         </SortableContext>
       </DndContext>
       

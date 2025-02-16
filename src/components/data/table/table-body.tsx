@@ -32,12 +32,13 @@ export function TableBody({
   return (
     <div 
       ref={parentRef} 
-      className="flex-1 overflow-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent/30 hover:scrollbar-thumb-accent/50" 
+      className="absolute inset-0 overflow-auto body-scroll" 
       onScroll={(e) => {
         // Sync header scroll with body scroll
-        const headerContainer = e.currentTarget.previousElementSibling;
-        if (headerContainer) {
-          headerContainer.scrollLeft = e.currentTarget.scrollLeft;
+        const tableContainer = e.currentTarget.closest('.table-container');
+        const headerScroll = tableContainer?.querySelector('.header-scroll');
+        if (headerScroll && headerScroll instanceof HTMLElement) {
+          headerScroll.scrollLeft = e.currentTarget.scrollLeft;
         }
       }}
     >

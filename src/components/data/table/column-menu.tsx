@@ -75,12 +75,11 @@ export function ColumnMenu({
           className={`p-1 rounded-md hover:bg-accent/50 transition-colors hover:opacity-100 ${
             isAddMode ? 'text-muted-foreground hover:text-primary hover:bg-accent/10' : ''
           }`}
-          style={column ? { color: column.textColor || 'inherit' } : undefined}
         >
           {isAddMode ? (
             <PlusIcon className="h-3.5 w-3.5" />
           ) : (
-            <ChevronDownIcon className="h-4 w-4" color={column?.textColor || 'inherit'} />
+            <ChevronDownIcon className="h-4 w-4" />
           )}
         </button>
       </DropdownMenuTrigger>

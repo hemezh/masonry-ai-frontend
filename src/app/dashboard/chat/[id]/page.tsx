@@ -357,8 +357,10 @@ export default function WorkflowChatPage() {
   const chatId = params?.id as string;
 
   return (
-    <ReactFlowProvider>
+    <div className="h-full w-full overflow-y-auto test">
+      <ReactFlowProvider >
       <WorkflowChatPageContent key={chatId} />
-    </ReactFlowProvider>
+      </ReactFlowProvider>
+    </div>
   );
 }
