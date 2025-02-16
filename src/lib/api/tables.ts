@@ -298,8 +298,8 @@ export const tablesApi = {
   },
 
   // Infer column types using AI
-  async inferColumnTypes(columns: TypeInferenceRequest[]): Promise<TypeInferenceResponse> {
-    const response = await fetchApi('/ai/infer-types', {
+  async inferColumnTypes(workspaceId: string, columns: TypeInferenceRequest[]): Promise<TypeInferenceResponse> {
+    const response = await fetchApi(`/workspaces/${workspaceId}/tables/infer-types`, {
       method: 'POST',
       body: JSON.stringify({ columns }),
     });

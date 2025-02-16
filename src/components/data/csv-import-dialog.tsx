@@ -109,7 +109,7 @@ export function CSVImportDialog({
         samples: samples.map(sample => sample[header] || '')
       }));
 
-      const inferenceResponse = await tablesApi.inferColumnTypes(inferenceRequests);
+      const inferenceResponse = await tablesApi.inferColumnTypes(workspaceId, inferenceRequests);
 
       setPreviewData({
         headers,

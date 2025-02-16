@@ -77,8 +77,8 @@ export default function TablePage({ params }: { params: Promise<PageParams> }) {
   return (
     <div className="p-4 h-full flex">
       {/* Main content */}
-      <div className="flex-1">
-        <div className="sticky top-0 z-50 flex items-center justify-between px-2 mb-6">
+      <div className="flex-1 flex flex-col h-full overflow-hidden">
+        <div className="flex items-center justify-between px-2 mb-6">
           <div className="flex items-center gap-2">
             <Link
               href="/dashboard/data"
@@ -119,7 +119,6 @@ export default function TablePage({ params }: { params: Promise<PageParams> }) {
                   <span className="text-xs font-medium">+2</span>
                 </div>
               </div>
-            
             </div>
             <Button
               variant="outline"
@@ -140,12 +139,14 @@ export default function TablePage({ params }: { params: Promise<PageParams> }) {
           </div>
         </div>
 
-        <ResizableTable
-          workspaceId={currentWorkspace!.id}
-          tableId={resolvedParams.id}
-          columns={columns}
-          onColumnResize={handleColumnResize}
-        />
+        <div className="flex-1 min-h-0">
+          <ResizableTable
+            workspaceId={currentWorkspace!.id}
+            tableId={resolvedParams.id}
+            columns={columns}
+            onColumnResize={handleColumnResize}
+          />
+        </div>
       </div>
 
       {/* Right Sidebar */}

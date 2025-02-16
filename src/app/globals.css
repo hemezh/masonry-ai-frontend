@@ -91,6 +91,36 @@
     background: transparent;
   }
 
+  /* Table scrollbar styles */
+  .header-scroll::-webkit-scrollbar,
+  .body-scroll::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .header-scroll::-webkit-scrollbar-track,
+  .body-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .header-scroll::-webkit-scrollbar-thumb,
+  .body-scroll::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--muted-foreground) / 0.2);
+    border-radius: 4px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+
+  .header-scroll::-webkit-scrollbar-thumb:hover,
+  .body-scroll::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--muted-foreground) / 0.3);
+  }
+
+  .header-scroll::-webkit-scrollbar-corner,
+  .body-scroll::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
   /* Remove the old scrollbar class styles */
   .scrollbar::-webkit-scrollbar,
   .scrollbar::-webkit-scrollbar-track,
@@ -99,7 +129,8 @@
     -ms-overflow-style: none;  /* IE and Edge */
     scrollbar-width: none;  
   }
-    /* These will be removed */
+
+  /* These will be removed */
   .scrollbar-none {
     -ms-overflow-style: none;  /* IE and Edge */
     scrollbar-width: none;  /* Firefox */
