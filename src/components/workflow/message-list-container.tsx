@@ -18,7 +18,7 @@ export const MessageListContainer = memo(({ messages, isLoading, isEmpty, chatIn
   }, [messages]);
 
   return (
-    <div className={cn("flex flex-col", isEmpty ? "justify-end" : "")}>
+    <div className={cn("flex flex-col h-full", isEmpty ? "justify-end" : "")}>
       <div className="flex-1 overflow-y-auto">
         <ChatMessageList messages={messages} isLoading={isLoading} />
         <div ref={messagesEndRef} />
