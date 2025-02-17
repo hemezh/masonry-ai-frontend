@@ -3,6 +3,31 @@
 import Link from "next/link";
 import Image from "next/image";
 
+const FluidGradient = () => {
+    
+  return (
+    <div className="absolute inset-0 overflow-hidden">
+      <style>
+        {`
+          @keyframes GradientBackground {
+              0%   { background-position: 0%   50%; }
+              50%  { background-position: 100% 50%; }
+              100% { background-position: 0%   50%; }
+          }
+          
+          .animated-gradient {
+            background: linear-gradient(0.33turn, #f4e9e7, #ffd9df, #fbe7d4, #f8deda);
+            background-size: 200% 200%;
+            animation: GradientBackground 12s ease infinite;
+          }
+        `}
+      </style>
+      
+      <div className="w-full h-full animated-gradient" />
+    </div>
+  );
+};
+
 export default function Home() {
   return (
     <div className="min-h-screen bg-background">

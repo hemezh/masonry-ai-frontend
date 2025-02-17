@@ -3,7 +3,6 @@
 @tailwind utilities;
 
 @layer base {
-
   body {
     @apply antialiased;
   }
@@ -40,7 +39,7 @@
     --card-foreground: 60 9% 98%;
     --popover: 20 12% 8%;
     --popover-foreground: 60 9% 98%;
-    --primary: 0 0% 98%;
+    --primary: 0 0% 94%;
     --primary-foreground: 0 0% 9%;
     --secondary: 12 6.5% 20%;
     --secondary-foreground: 60 9% 98%;
@@ -52,13 +51,12 @@
     --destructive-foreground: 60 9% 98%;
     --border: 12 6.5% 20%;
     --input: 12 6.5% 20%;
-    --ring: 0 0% 98%;
+    --ring: 0 0% 94%;
     --radius: .5rem;
     --table-border-color: rgb(90, 90, 90);;
     --table-background-color: rgb(110, 110, 110);
     --table-text-color: rgb(255, 255, 255);
    }
-  
 }
 
 @layer utilities {
