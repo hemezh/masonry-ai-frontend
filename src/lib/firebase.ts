@@ -1,6 +1,6 @@
 "use client"
 
-import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
+import { initializeApp } from 'firebase/app';
 import {
   getAuth,
   signInWithEmailAndPassword,
@@ -24,14 +24,8 @@ const firebaseConfig = {
 
 console.log(firebaseConfig);
 
-// Initialize Firebase
-let app: FirebaseApp | undefined;
-let auth: Auth | undefined;
-
-if (typeof window !== 'undefined') {
-  app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-  auth = getAuth(app);
-}
+const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
 
 export type AuthUser = User;
 
